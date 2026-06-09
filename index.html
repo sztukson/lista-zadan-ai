@@ -1291,7 +1291,7 @@ function renderMatrix(body) {
 
   QUADS.forEach(q => {
     const raw = items.filter(i => i.sec === 'todo' && i.quad === q.id && !i.checked);
-    const filtered = applyFilter(raw).sort((a, b) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0));
+    const filtered = applyFilter(raw);
     const collapsed = QUADS_COLLAPSED[q.id];
 
     const qEl = document.createElement('div');
@@ -1328,7 +1328,7 @@ function renderMatrix(body) {
 
 // ── Flat list ──
 function renderFlatList(body, sec, secItems) {
-  const filtered = applyFilter(secItems).sort((a, b) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0));
+  const filtered = applyFilter(secItems);
   if (filtered.length === 0) {
     body.innerHTML = `<div class="empty-zone">${activeFilter !== 'all' ? 'Brak dla wybranego filtru' : 'Przeciągnij tutaj'}</div>`;
   } else {
@@ -2160,12 +2160,10 @@ function getVoiceItems() {
     if (sec.id === 'todo') {
       QUADS.forEach(q => {
         items.filter(i => i.sec === 'todo' && i.quad === q.id && !i.checked)
-          .sort((a,b) => (b.priority?1:0)-(a.priority?1:0))
           .forEach(i => result.push(i));
       });
     } else {
       items.filter(i => i.sec === sec.id && !i.checked)
-        .sort((a,b) => (b.priority?1:0)-(a.priority?1:0))
         .forEach(i => result.push(i));
     }
   });
