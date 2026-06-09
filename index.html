@@ -532,6 +532,38 @@
   .log-ts   { flex-shrink: 0; font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono',monospace; white-space: nowrap; }
   .log-empty { text-align: center; padding: 14px; font-size: 11px; color: var(--border); }
 
+  /* CALENDAR */
+  .cal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; display:flex; align-items:center; justify-content:center; }
+  .cal-modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; width:min(520px,95vw); max-height:90vh; overflow-y:auto; }
+  .cal-header { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+  .cal-title { flex:1; text-align:center; font-size:14px; font-weight:700; color:var(--text); }
+  .cal-nav,.cal-close { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 10px; color:var(--muted); cursor:pointer; font-size:14px; transition:all .12s; }
+  .cal-nav:hover,.cal-close:hover { color:var(--text); border-color:var(--cyan); }
+  .cal-days-hd { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:4px; }
+  .cal-day-lbl { text-align:center; font-size:10px; color:var(--muted); font-weight:600; padding:4px 0; text-transform:uppercase; }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+  .cal-cell { min-height:60px; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:4px; }
+  .cal-cell.today { border-color:var(--orange); background:rgba(230,126,34,.06); }
+  .cal-cell.other-month { opacity:.35; }
+  .cal-cell-num { font-size:10px; font-weight:700; color:var(--muted); margin-bottom:2px; font-family:'JetBrains Mono',monospace; }
+  .cal-cell.today .cal-cell-num { color:var(--orange); }
+  .cal-task { font-size:9px; padding:1px 4px; border-radius:3px; margin-bottom:1px; background:rgba(57,208,200,.15); color:var(--cyan); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default; }
+  .cal-task.done { background:rgba(63,185,80,.12); color:var(--green); text-decoration:line-through; }
+  .cal-task.inprogress { background:rgba(230,126,34,.15); color:var(--orange); }
+
+  /* BULK TOOLBAR */
+  .item.selected { background:rgba(57,208,200,.08) !important; border-color:var(--cyan) !important; }
+  .bulk-toolbar { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--cyan); border-radius:10px; padding:10px 16px; display:flex; gap:8px; align-items:center; z-index:150; box-shadow:0 4px 20px rgba(0,0,0,.4); }
+  .bulk-count { font-size:12px; font-weight:700; color:var(--cyan); }
+  .btn-bulk { padding:5px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .12s; }
+  .btn-bulk:hover { border-color:var(--cyan); color:var(--text); }
+
+  /* SELECTOR CHECKBOX */
+  .sel-cb { width:14px; height:14px; border-radius:3px; border:1.5px solid var(--border); flex-shrink:0; margin-top:2px; cursor:pointer; transition:all .15s; }
+  .item:hover .sel-cb { border-color:var(--cyan); }
+  .item.selected .sel-cb { background:var(--cyan); border-color:var(--cyan); }
+  .item.selected .sel-cb::after { content:'✓'; font-size:9px; color:#000; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:14px; }
+
   /* PROJECT TABS */
   .proj-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px; flex-wrap: wrap; }
   .proj-tab { flex: 1; padding: 7px 10px; border-radius: 7px; border: 1px solid transparent; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; background: transparent; color: var(--muted); transition: all .15s; text-align: center; white-space: nowrap; min-width: 0; }
@@ -562,6 +594,7 @@
     <button class="proj-tab" onclick="switchProject('dp')" id="pt-dp" style="color:var(--blue)">🎬 DOP</button>
     <button class="proj-tab" onclick="switchProject('vns')" id="pt-vns" style="color:var(--orange)">📱 VNS</button>
     <button class="proj-tab" onclick="switchProject('projekty')" id="pt-projekty" style="color:var(--purple)">📂 Projekty</button>
+    <button class="proj-tab" onclick="switchProject('vibecoding')" id="pt-vibecoding" style="color:var(--purple)">💻 Vibe Coding</button>
   </div>
 
   <div class="header">
@@ -573,7 +606,7 @@
     <div class="stat-card"><div class="stat-value" id="s-q1" style="color:var(--red)">0</div><div class="stat-label">🔴 Teraz</div></div>
     <div class="stat-card"><div class="stat-value" id="s-q2" style="color:var(--yellow)">0</div><div class="stat-label">🟡 Zaplanuj</div></div>
     <div class="stat-card"><div class="stat-value" id="s-done" style="color:var(--green)">0</div><div class="stat-label">✓ Zrobione</div></div>
-    <div class="stat-card"><div class="stat-value" id="s-pawel" style="color:var(--purple)">0</div><div class="stat-label">❓ Paweł</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-inprogress" style="color:var(--orange)">0</div><div class="stat-label">⏳ W trakcie</div></div>
   </div>
 
   <div class="main-progress">
@@ -587,6 +620,7 @@
     <button class="btn" onclick="resetChecked()">↺ Resetuj</button>
     <button class="btn" onclick="toggleAll()">↕ Zwiń / Rozwiń</button>
     <button class="btn btn-week" id="btn-week" onclick="toggleWeekView()">📅 Tydzień</button>
+    <button class="btn" onclick="toggleCalendar()" id="btn-cal">🗓 Kalendarz</button>
     <button class="btn" onclick="saveState()">💾 Zapisz</button>
   </div>
 
@@ -658,6 +692,28 @@
   <div class="vs-hint">dodaj · usuń · zrób · cofnij · zapisz</div>
 </div>
 <button class="voice-fab" id="voice-fab" onclick="toggleGlobalMic()" title="Komenda głosowa (kliknij i mów)">🎙️</button>
+
+<div class="cal-overlay" id="cal-overlay" style="display:none">
+  <div class="cal-modal">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrev()">‹</button>
+      <span class="cal-title" id="cal-title"></span>
+      <button class="cal-nav" onclick="calNext()">›</button>
+      <button class="cal-close" onclick="toggleCalendar()">✕</button>
+    </div>
+    <div id="cal-grid-wrap">
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="bulk-toolbar" id="bulk-toolbar" style="display:none">
+  <span class="bulk-count" id="bulk-count">0 zaznaczonych</span>
+  <input class="add-date" id="bulk-date" type="date" style="width:140px;padding:5px 8px;" title="Przypisz datę">
+  <button class="btn-bulk" onclick="applyBulkDate()">📅 Dodaj datę</button>
+  <button class="btn-bulk" onclick="applyBulkStatus('inprogress')">⏳ W trakcie</button>
+  <button class="btn-bulk" onclick="clearSelection()" style="color:var(--muted)">✕ Odznacz</button>
+</div>
 
 <script>
 // ════════════════════════════════════════
@@ -758,6 +814,16 @@ const SECTIONS_DEF = [
   { id:'done',  label:'Zrobione ✓',   color:'var(--green)',  collapsed:true  },
 ];
 
+const SECTIONS_BY_PROJECT = {
+  general:    ['todo', 'done'],
+  prywatne:   ['todo', 'done'],
+  dp:         ['todo', 'done'],
+  vns:        ['todo', 'done'],
+  projekty:   ['todo', 'done'],
+  szpilki:    ['todo', 'done'],
+  vibecoding: ['todo', 'ai', 'pawel', 'done'],
+};
+
 const DEFAULT_ITEMS = [
   { id:'t1',  sec:'todo', quad:'q1', checked:false, priority:false, pawel:true,  note:'', text:'Synchronizacja 3 kalendarzy Google (firmowy, freelance, prywatny) — 22.05' },
   { id:'t2',  sec:'todo', quad:'q2', checked:false, priority:false, pawel:true,  note:'', text:'Panel firmowy — migracja z HTML do Next.js + Supabase' },
@@ -834,11 +900,12 @@ const DEFAULT_ITEMS_WIDEO = [
 ];
 
 const PROJECTS = {
-  general:  { label: 'Wszystkie',         storageKey: 'ai-lista-v5',        defaultItems: DEFAULT_ITEMS,          catKey: null       },
-  prywatne: { label: 'Prywatne',          storageKey: 'ai-lista-prywatne',  defaultItems: DEFAULT_ITEMS_PRYWATNE, catKey: 'prywatne' },
-  dp:       { label: 'DOP',               storageKey: 'ai-lista-dp',        defaultItems: [],                     catKey: 'dp'       },
-  vns:      { label: 'VNS',               storageKey: 'ai-lista-vns',       defaultItems: DEFAULT_ITEMS_WIDEO,    catKey: 'vns'      },
-  szpilki:  { label: 'Zdunek — Szpilki', storageKey: 'ai-lista-szpilki',   defaultItems: DEFAULT_ITEMS_SZPILKI,  catKey: null       },
+  general:    { label: 'Wszystkie',         storageKey: 'ai-lista-v5',          defaultItems: DEFAULT_ITEMS,          catKey: null       },
+  prywatne:   { label: 'Prywatne',          storageKey: 'ai-lista-prywatne',    defaultItems: DEFAULT_ITEMS_PRYWATNE, catKey: 'prywatne' },
+  dp:         { label: 'DOP',               storageKey: 'ai-lista-dp',          defaultItems: [],                     catKey: 'dp'       },
+  vns:        { label: 'VNS',               storageKey: 'ai-lista-vns',         defaultItems: DEFAULT_ITEMS_WIDEO,    catKey: 'vns'      },
+  szpilki:    { label: 'Zdunek — Szpilki', storageKey: 'ai-lista-szpilki',     defaultItems: DEFAULT_ITEMS_SZPILKI,  catKey: null       },
+  vibecoding: { label: 'Vibe Coding',       storageKey: 'ai-lista-vibecoding',  defaultItems: [],                     catKey: null       },
 };
 
 const CAT_PROJECTS = ['prywatne', 'dp', 'vns'];
@@ -1108,14 +1175,20 @@ function renderProjectsView() {
   const grid = document.createElement('div');
   grid.className = 'proj-grid';
 
+  let totalAll = 0, doneAll = 0;
+
   Object.entries(SUB_PROJECTS).forEach(([key, meta]) => {
-    let count = 0;
+    let projectItems = [];
     try {
-      const raw = localStorage.getItem(PROJECTS[key].storageKey);
+      const raw = localStorage.getItem(PROJECTS[key] && PROJECTS[key].storageKey);
       const data = raw ? JSON.parse(raw) : null;
-      const projectItems = data && data.items ? data.items : PROJECTS[key].defaultItems;
-      count = projectItems.filter(i => !i.checked).length;
-    } catch(e) { count = PROJECTS[key].defaultItems.filter(i => !i.checked).length; }
+      projectItems = data && data.items ? data.items : (PROJECTS[key] ? PROJECTS[key].defaultItems : []);
+    } catch(e) { projectItems = PROJECTS[key] ? PROJECTS[key].defaultItems : []; }
+
+    const count = projectItems.filter(i => !i.checked).length;
+    const done  = projectItems.filter(i => i.checked).length;
+    totalAll += projectItems.length;
+    doneAll  += done;
 
     const card = document.createElement('div');
     card.className = 'proj-card';
@@ -1130,7 +1203,22 @@ function renderProjectsView() {
   });
 
   wrap.appendChild(grid);
-  updateStats();
+
+  // update stats & progress bar with aggregate data
+  const pct = totalAll > 0 ? Math.round(doneAll / totalAll * 100) : 0;
+  const s_done = document.getElementById('s-done');
+  const s_pct  = document.getElementById('pct');
+  const s_bar  = document.getElementById('bar');
+  if (s_done) s_done.textContent = doneAll;
+  if (s_pct)  s_pct.textContent  = pct + '%';
+  if (s_bar)  s_bar.style.width  = pct + '%';
+
+  const s_q1 = document.getElementById('s-q1');
+  const s_q2 = document.getElementById('s-q2');
+  const s_ip = document.getElementById('s-inprogress');
+  if (s_q1) s_q1.textContent = totalAll - doneAll;
+  if (s_q2) s_q2.textContent = 0;
+  if (s_ip) s_ip.textContent = 0;
 }
 
 // ════════════════════════════════════════
@@ -1360,6 +1448,7 @@ function makeItem(item, num) {
           <label class="toggle-pawel ${item.pawel?'active':''}" id="eip-${item.id}" onclick="toggleEditPawel('${item.id}')">
             <input type="checkbox" ${item.pawel?'checked':''}> [P] Paweł
           </label>
+          <button class="btn-mic" id="emic-${item.id}" onclick="event.stopPropagation();toggleEditMic('${item.id}')" title="Dyktuj">🎤</button>
           <button class="btn-save-edit"   onclick="event.stopPropagation();saveEdit('${item.id}')">✓ Zapisz</button>
           <button class="btn-cancel-edit" onclick="event.stopPropagation();closeEdit()">✕ Anuluj</button>
         </div>
@@ -1382,11 +1471,13 @@ function makeItem(item, num) {
   el.className = 'item'
     + (item.checked    ? ' is-done'       : '')
     + (item.inProgress ? ' is-inprogress' : '')
-    + (item.priority   ? ' is-priority'   : '');
+    + (item.priority   ? ' is-priority'   : '')
+    + (selectedIds.has(item.id) ? ' selected' : '');
   el.draggable = true;
 
   const cbCls = item.checked ? 'checked' : (item.inProgress ? 'inprogress' : '');
   el.innerHTML = `
+    <div class="sel-cb" onclick="event.stopPropagation();toggleSelect('${item.id}')" title="Zaznacz"></div>
     <span class="num">${num}.</span>
     <span class="drag-handle">⋮⋮</span>
     <button class="btn-priority ${item.priority?'active':''}"
@@ -1725,16 +1816,16 @@ function updateStats() {
   const q1c  = items.filter(i => i.sec==='todo' && i.quad==='q1' && !i.checked).length;
   const q2c  = items.filter(i => i.sec==='todo' && i.quad==='q2' && !i.checked).length;
   const done = items.filter(i => i.checked).length;
-  const pawel= items.filter(i => i.sec==='pawel' && !i.checked).length;
+  const inprog = items.filter(i => i.inProgress && !i.checked).length;
   const total = items.length;
   const pct  = Math.round(done / total * 100);
 
-  document.getElementById('s-q1').textContent    = q1c;
-  document.getElementById('s-q2').textContent    = q2c;
-  document.getElementById('s-done').textContent  = done;
-  document.getElementById('s-pawel').textContent = pawel;
-  document.getElementById('pct').textContent     = pct + '%';
-  document.getElementById('bar').style.width     = pct + '%';
+  document.getElementById('s-q1').textContent         = q1c;
+  document.getElementById('s-q2').textContent         = q2c;
+  document.getElementById('s-done').textContent       = done;
+  document.getElementById('s-inprogress').textContent = inprog;
+  document.getElementById('pct').textContent          = pct + '%';
+  document.getElementById('bar').style.width          = pct + '%';
 }
 
 // ════════════════════════════════════════
@@ -1842,9 +1933,23 @@ function toggleAddForm() {
 }
 
 function onSecChange() {
-  const sec  = document.getElementById('new-sec').value;
-  const quad = document.getElementById('new-quad');
+  const secEl = document.getElementById('new-sec');
+  const sec   = secEl.value;
+  const quad  = document.getElementById('new-quad');
   quad.style.display = sec === 'todo' ? '' : 'none';
+
+  // hide ai/pawel options for projects that don't have those sections
+  const hasAiPawel = activeProject === 'vibecoding';
+  const optAi    = secEl.querySelector('option[value="ai"]');
+  const optPawel = secEl.querySelector('option[value="pawel"]');
+  if (optAi)    optAi.style.display    = hasAiPawel ? '' : 'none';
+  if (optPawel) optPawel.style.display = hasAiPawel ? '' : 'none';
+
+  // if current value is ai/pawel but project doesn't support it — reset to todo
+  if (!hasAiPawel && (sec === 'ai' || sec === 'pawel')) {
+    secEl.value = 'todo';
+    quad.style.display = '';
+  }
 }
 
 function togglePawelFlag() {
@@ -1942,6 +2047,57 @@ function toggleMic() {
   };
 
   recognition.start();
+}
+
+let editMicActive = false;
+let editMicRecognition = null;
+
+function toggleEditMic(id) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('⚠ Przeglądarka nie obsługuje dyktowania', false);
+    return;
+  }
+  if (editMicActive) {
+    editMicRecognition && editMicRecognition.stop();
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  editMicRecognition = new SR();
+  editMicRecognition.lang          = 'pl-PL';
+  editMicRecognition.interimResults = true;
+  editMicRecognition.continuous    = false;
+
+  const input = document.getElementById('eit-' + id);
+  const btn   = document.getElementById('emic-' + id);
+  const base  = input ? input.value : '';
+
+  editMicRecognition.onstart = () => {
+    editMicActive = true;
+    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹'; }
+  };
+
+  editMicRecognition.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final   += e.results[i][0].transcript;
+      else                      interim += e.results[i][0].transcript;
+    }
+    if (input) input.value = (base + (final || interim)).trim();
+  };
+
+  editMicRecognition.onend = () => {
+    editMicActive = false;
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤'; }
+    if (input) input.focus();
+  };
+
+  editMicRecognition.onerror = e => {
+    editMicActive = false;
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '🎤'; }
+    if (e.error !== 'no-speech') showToast('⚠ Błąd mikrofonu: ' + e.error, false);
+  };
+
+  editMicRecognition.start();
 }
 
 // ════════════════════════════════════════
@@ -2152,7 +2308,8 @@ function switchProject(pid) {
   activeProject = pid;
   projectsSubView = null;
 
-  sections = JSON.parse(JSON.stringify(SECTIONS_DEF));
+  const allowedSecs1 = SECTIONS_BY_PROJECT[pid] || ['todo','ai','pawel','done'];
+  sections = SECTIONS_DEF.filter(s => allowedSecs1.includes(s.id)).map(s => JSON.parse(JSON.stringify(s)));
   Object.assign(QUADS_COLLAPSED,     { q1:false, q2:false, q3:true, q4:true });
   Object.assign(DONE_SUBS_COLLAPSED, { 'ds-todo':false, 'ds-ai':false, 'ds-pawel':false });
   activeFilter = 'all';
@@ -2185,7 +2342,7 @@ function switchProject(pid) {
   const tabEl = document.getElementById('pt-' + pid);
   if (tabEl) tabEl.classList.add('active');
 
-  const titles = { general:'Wszystkie', prywatne:'Prywatne', dp:'DOP', vns:'VNS', projekty:'Projekty', szpilki:'Zdunek — Szpilki' };
+  const titles = { general:'Wszystkie', prywatne:'Prywatne', dp:'DOP', vns:'VNS', projekty:'Projekty', szpilki:'Zdunek — Szpilki', vibecoding:'Vibe Coding' };
   document.getElementById('proj-title').textContent = titles[pid] || (PROJECTS[pid] && PROJECTS[pid].label) || pid;
 }
 
@@ -2193,7 +2350,8 @@ function openSubProject(key) {
   projectsSubView = key;
   saveState(true);
   activeProject = key;
-  sections = JSON.parse(JSON.stringify(SECTIONS_DEF));
+  const allowedSecs2 = SECTIONS_BY_PROJECT[key] || ['todo','ai','pawel','done'];
+  sections = SECTIONS_DEF.filter(s => allowedSecs2.includes(s.id)).map(s => JSON.parse(JSON.stringify(s)));
   Object.assign(QUADS_COLLAPSED,     { q1:false, q2:false, q3:true, q4:true });
   Object.assign(DONE_SUBS_COLLAPSED, { 'ds-todo':false, 'ds-ai':false, 'ds-pawel':false });
   activeFilter = 'all'; editingId = null; weekViewOpen = false;
@@ -2204,6 +2362,126 @@ function openSubProject(key) {
   loadState();
   render();
   document.getElementById('proj-title').textContent = SUB_PROJECTS[key] ? SUB_PROJECTS[key].label : key;
+}
+
+// ════════════════════════════════════════
+//  CALENDAR
+// ════════════════════════════════════════
+let calYear = TODAY.getFullYear(), calMonth = TODAY.getMonth();
+
+function toggleCalendar() {
+  const ov = document.getElementById('cal-overlay');
+  ov.style.display = ov.style.display === 'none' ? 'flex' : 'none';
+  if (ov.style.display === 'flex') renderCal();
+}
+
+function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCal(); }
+function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCal(); }
+
+function renderCal() {
+  const MONTHS = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+  document.getElementById('cal-title').textContent = `${MONTHS[calMonth]} ${calYear}`;
+
+  const wrap = document.getElementById('cal-grid-wrap');
+  const grid = document.getElementById('cal-grid');
+
+  // build days header
+  const DAY_LABELS = ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'];
+  const existing = wrap.querySelector('.cal-days-hd');
+  if (existing) existing.remove();
+  const hd = document.createElement('div');
+  hd.className = 'cal-days-hd';
+  hd.innerHTML = DAY_LABELS.map(d => `<div class="cal-day-lbl">${d}</div>`).join('');
+  wrap.insertBefore(hd, grid);
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay  = new Date(calYear, calMonth + 1, 0);
+  let startDow = firstDay.getDay();
+  startDow = startDow === 0 ? 6 : startDow - 1; // Mon=0
+
+  // collect tasks with dates
+  const tasksByDate = {};
+  items.forEach(item => {
+    const dt = getItemDate(item);
+    if (!dt) return;
+    const key = dt.toISOString().slice(0, 10);
+    if (!tasksByDate[key]) tasksByDate[key] = [];
+    tasksByDate[key].push(item);
+  });
+
+  grid.innerHTML = '';
+  for (let i = 0; i < startDow; i++) {
+    const blank = document.createElement('div');
+    blank.className = 'cal-cell other-month';
+    grid.appendChild(blank);
+  }
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const cell = document.createElement('div');
+    const dt   = new Date(calYear, calMonth, d);
+    const key  = dt.toISOString().slice(0, 10);
+    const isToday = dt.toDateString() === TODAY.toDateString();
+    cell.className = 'cal-cell' + (isToday ? ' today' : '');
+    const tasks = tasksByDate[key] || [];
+    cell.innerHTML = `<div class="cal-cell-num">${d}</div>` +
+      tasks.slice(0, 3).map(t =>
+        `<div class="cal-task${t.checked ? ' done' : t.inProgress ? ' inprogress' : ''}" title="${escHtml(t.text)}">${escHtml(t.text.slice(0, 20))}</div>`
+      ).join('') +
+      (tasks.length > 3 ? `<div style="font-size:9px;color:var(--muted)">+${tasks.length - 3} więcej</div>` : '');
+    grid.appendChild(cell);
+  }
+}
+
+// ════════════════════════════════════════
+//  BULK SELECT
+// ════════════════════════════════════════
+const selectedIds = new Set();
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  updateBulkToolbar();
+  render();
+}
+
+function updateBulkToolbar() {
+  const tb  = document.getElementById('bulk-toolbar');
+  const cnt = document.getElementById('bulk-count');
+  if (!tb) return;
+  tb.style.display = selectedIds.size > 0 ? 'flex' : 'none';
+  if (cnt) cnt.textContent = `${selectedIds.size} zaznaczonych`;
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  updateBulkToolbar();
+  render();
+}
+
+function applyBulkDate() {
+  const dateEl  = document.getElementById('bulk-date');
+  const dateStr = pickerToDisplay(dateEl.value);
+  if (!dateStr) { showToast('⚠ Wybierz datę', false); return; }
+  const count = selectedIds.size;
+  pushHistory();
+  selectedIds.forEach(id => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    item.text = item.text.replace(/\s*[—–]\s*\d{1,2}\.\d{2}(\.\d{2,4})?$/, '').trim() + ' — ' + dateStr;
+  });
+  clearSelection();
+  render(); autoSave();
+  showToast(`📅 Data dodana do ${count} zadań`, false);
+}
+
+function applyBulkStatus(status) {
+  pushHistory();
+  selectedIds.forEach(id => {
+    const item = items.find(i => i.id === id);
+    if (!item || item.checked) return;
+    if (status === 'inprogress') item.inProgress = true;
+  });
+  clearSelection();
+  render(); autoSave();
 }
 
 // Initial load — localStorage (fast), then Supabase sync in background
