@@ -189,8 +189,8 @@
     text-transform: uppercase; letter-spacing: .04em;
   }
   .badge-cat.cat-prywatne { background: rgba(248,81,73,.15);   color: var(--red);    border: 1px solid rgba(248,81,73,.3);  }
-  .badge-cat.cat-dp       { background: rgba(230,126,34,.15); color: var(--orange); border: 1px solid rgba(230,126,34,.3); }
-  .badge-cat.cat-vns      { background: rgba(57,208,200,.15); color: var(--cyan);   border: 1px solid rgba(57,208,200,.3); }
+  .badge-cat.cat-dp       { background: rgba(88,166,255,.15);  color: var(--blue);   border: 1px solid rgba(88,166,255,.3);  }
+  .badge-cat.cat-vns      { background: rgba(230,126,34,.15); color: var(--orange); border: 1px solid rgba(230,126,34,.3); }
 
   .item-text { flex: 1; line-height: 1.45; font-size: 12px; min-width: 0; }
 
@@ -232,21 +232,25 @@
   .item.is-priority                 { border-left: 2px solid rgba(210,153,34,.5); }
   .item.is-priority .item-text      { font-weight: 500; }
 
-  .btn-edit-item, .btn-delete-item, .btn-note-item {
+  .btn-edit-item, .btn-delete-item, .btn-note-item, .btn-progress-item {
     display: none; background: none; border: none; cursor: pointer;
     font-size: 13px; padding: 0 3px; flex-shrink: 0;
     line-height: 1; transition: color .12s;
   }
-  .btn-edit-item   { color: var(--border); margin-left: auto; }
-  .btn-delete-item { color: var(--border); }
-  .btn-note-item   { color: var(--border); }
-  .item:hover .btn-edit-item   { display: block; color: var(--muted); }
-  .item:hover .btn-delete-item { display: block; color: var(--muted); }
-  .item:hover .btn-note-item   { display: block; color: var(--muted); }
-  .btn-note-item.has-note      { display: block; color: var(--blue); }
-  .btn-edit-item:hover   { color: var(--cyan) !important; }
-  .btn-delete-item:hover { color: var(--red)  !important; }
-  .btn-note-item:hover   { color: var(--blue) !important; }
+  .btn-edit-item         { color: var(--border); margin-left: auto; }
+  .btn-delete-item       { color: var(--border); }
+  .btn-note-item         { color: var(--border); }
+  .btn-progress-item     { color: var(--border); font-size: 12px; }
+  .item:hover .btn-edit-item      { display: block; color: var(--muted); }
+  .item:hover .btn-delete-item    { display: block; color: var(--muted); }
+  .item:hover .btn-note-item      { display: block; color: var(--muted); }
+  .item:hover .btn-progress-item  { display: block; color: var(--muted); }
+  .btn-note-item.has-note         { display: block; color: var(--blue); }
+  .btn-progress-item.is-active    { display: block; color: var(--orange); }
+  .btn-edit-item:hover     { color: var(--cyan)   !important; }
+  .btn-delete-item:hover   { color: var(--red)    !important; }
+  .btn-note-item:hover     { color: var(--blue)   !important; }
+  .btn-progress-item:hover { color: var(--orange) !important; }
 
   /* NOTE AREA */
   .note-row {
@@ -555,14 +559,14 @@
   <div class="proj-tabs">
     <button class="proj-tab active" onclick="switchProject('general')" id="pt-general">📋 Wszystkie</button>
     <button class="proj-tab" onclick="switchProject('prywatne')" id="pt-prywatne" style="color:var(--red)">🔴 Prywatne</button>
-    <button class="proj-tab" onclick="switchProject('dp')" id="pt-dp" style="color:var(--orange)">🎬 DOP</button>
-    <button class="proj-tab" onclick="switchProject('vns')" id="pt-vns" style="color:var(--cyan)">📱 VNS</button>
+    <button class="proj-tab" onclick="switchProject('dp')" id="pt-dp" style="color:var(--blue)">🎬 DOP</button>
+    <button class="proj-tab" onclick="switchProject('vns')" id="pt-vns" style="color:var(--orange)">📱 VNS</button>
     <button class="proj-tab" onclick="switchProject('projekty')" id="pt-projekty" style="color:var(--purple)">📂 Projekty</button>
   </div>
 
   <div class="header">
     <h1 id="proj-title">Wszystkie zadania</h1>
-    <p>Jakub Sztuk · <span id="last-saved">—</span></p>
+    <p>Jakub Sztuk · <span id="last-saved">—</span> · <span id="sb-status" title="Supabase" style="color:var(--muted);font-size:11px">☁ …</span></p>
   </div>
 
   <div class="overview">
@@ -720,8 +724,12 @@ async function syncFromSupabase() {
       if (remote && remote.length) items = remote;
     } else return;
     render();
-    document.getElementById('last-saved').textContent = '☁ ' + new Date().toLocaleTimeString('pl-PL');
-  } catch(e) {}
+    const sbEl = document.getElementById('sb-status');
+    if (sbEl) sbEl.innerHTML = '<span style="color:var(--green)">☁ online</span>';
+  } catch(e) {
+    const sbEl = document.getElementById('sb-status');
+    if (sbEl) sbEl.innerHTML = '<span style="color:var(--red)">☁ offline</span>';
+  }
 }
 
 // ════════════════════════════════════════
@@ -1390,6 +1398,7 @@ function makeItem(item, num) {
       ${item.pawel ? '<span class="badge-p">[P]</span>' : ''}
       ${item.cat   ? `<span class="badge-cat cat-${item.cat}">${catLabels[item.cat]||item.cat}</span>` : ''}
     </div>
+    <button class="btn-progress-item ${item.inProgress?'is-active':''}" onclick="event.stopPropagation();toggleInProgress('${item.id}')" title="${item.inProgress?'Usuń W trakcie':'Oznacz jako W trakcie'}">⏳</button>
     <button class="btn-note-item ${hasNote?'has-note':''}" onclick="event.stopPropagation();toggleNote('${item.id}')" title="${noteOpen?'Schowaj notatkę':'Pokaż notatkę'}">📝</button>
     <button class="btn-edit-item"   onclick="event.stopPropagation();openEdit('${item.id}')"   title="Edytuj">✏</button>
     <button class="btn-delete-item" onclick="event.stopPropagation();deleteItem('${item.id}')" title="Usuń">✕</button>
@@ -1537,6 +1546,15 @@ function togglePriority(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
   item.priority = !item.priority;
+  render(); autoSave();
+}
+
+function toggleInProgress(id) {
+  pushHistory();
+  const item = items.find(i => i.id === id);
+  if (!item || item.checked) return;
+  item.inProgress = !item.inProgress;
+  logAction('⏳', `${item.inProgress ? 'W trakcie' : 'Wróć'}: ${item.text.slice(0,55)}`);
   render(); autoSave();
 }
 
