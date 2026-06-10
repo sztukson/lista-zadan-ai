@@ -1430,6 +1430,7 @@ function renderProjectsView() {
   grid.className = 'proj-grid';
 
   let totalAll = 0, doneAll = 0;
+  const cardEls = {};
 
   Object.entries(SUB_PROJECTS).forEach(([key, meta]) => {
     let projectItems = [];
@@ -1450,10 +1451,25 @@ function renderProjectsView() {
       <div class="proj-card-icon">${meta.icon}</div>
       <div class="proj-card-title">${meta.label}</div>
       <div class="proj-card-desc">${meta.desc}</div>
-      <div class="proj-card-count">${count} zadań do zrobienia</div>
+      <div class="proj-card-count" id="proj-count-${key}">${count} zadań do zrobienia</div>
     `;
     card.onclick = () => openSubProject(key);
     grid.appendChild(card);
+    cardEls[key] = card;
+  });
+
+  // refresh counts from Supabase asynchronously
+  Object.keys(SUB_PROJECTS).forEach(key => {
+    sbFetch(key).then(remote => {
+      if (!remote) return;
+      const countEl = document.getElementById('proj-count-' + key);
+      if (countEl) countEl.textContent = remote.filter(i => !i.checked).length + ' zadań do zrobienia';
+      // update localStorage so next time it's correct
+      if (PROJECTS[key]) {
+        const state = { _saved: new Date().toISOString(), items: remote };
+        localStorage.setItem(PROJECTS[key].storageKey, JSON.stringify(state));
+      }
+    }).catch(() => {});
   });
 
   wrap.appendChild(grid);
@@ -3119,6 +3135,7 @@ function openSubProject(key) {
   if (actionsBar) actionsBar.style.display = '';
   loadState();
   render();
+  syncFromSupabase();
   document.getElementById('proj-title').textContent = SUB_PROJECTS[key] ? SUB_PROJECTS[key].label : key;
 }
 
