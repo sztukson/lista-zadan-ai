@@ -379,6 +379,30 @@
   .st-badge-inline { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; vertical-align: middle; }
   @media (max-width: 640px) { .item-detail { padding-left: 36px; } }
 
+  /* CYKLICZNE VIEW */
+  .cyc-wrap { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 100px; }
+  .cyc-add-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 4px; }
+  .cyc-add-form input, .cyc-add-form select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: inherit; outline: none; }
+  .cyc-add-form input { flex: 1; min-width: 180px; }
+  .cyc-add-form input:focus, .cyc-add-form select:focus { border-color: var(--green); }
+  .cyc-add-form .btn-cyc-add { background: rgba(63,185,80,.15); border: 1px solid var(--green); color: var(--green); border-radius: 6px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .cyc-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; transition: border-color .15s; }
+  .cyc-item.cyc-overdue  { border-color: rgba(248,81,73,.5);  background: rgba(248,81,73,.04);  }
+  .cyc-item.cyc-soon     { border-color: rgba(210,153,34,.5);  background: rgba(210,153,34,.04); }
+  .cyc-item.cyc-ok       { border-color: rgba(63,185,80,.3);   background: rgba(63,185,80,.03);  }
+  .cyc-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+  .cyc-badge.cyc-overdue { background: rgba(248,81,73,.2);  color: var(--red);   }
+  .cyc-badge.cyc-soon    { background: rgba(210,153,34,.2);  color: var(--yellow); }
+  .cyc-badge.cyc-ok      { background: rgba(63,185,80,.15);  color: var(--green); }
+  .cyc-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); min-width: 0; }
+  .cyc-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .cyc-rhythm { font-size: 10px; color: var(--cyan); font-family: 'JetBrains Mono',monospace; background: rgba(57,208,200,.1); padding: 2px 6px; border-radius: 99px; flex-shrink: 0; }
+  .cyc-done-btn { background: rgba(63,185,80,.12); border: 1px solid var(--green); color: var(--green); border-radius: 6px; padding: 5px 11px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .cyc-done-btn:hover { background: rgba(63,185,80,.25); }
+  .cyc-del-btn { background: none; border: none; color: var(--border); cursor: pointer; font-size: 14px; padding: 4px; flex-shrink: 0; }
+  .cyc-del-btn:hover { color: var(--red); }
+  .cyc-section-hdr { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 2px 4px; }
+
   /* EXPORT/IMPORT */
   .search-row { display: none; }
   .io-row { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 12px; }
@@ -787,6 +811,7 @@
     <button class="proj-tab" onclick="switchProject('vibecoding')" id="pt-vibecoding" style="color:var(--purple)">💻 Vibe Coding</button>
     <button class="proj-tab" onclick="switchProject('telegram')" id="pt-telegram" style="color:var(--cyan)">📲 Telegram</button>
     <button class="proj-tab" onclick="switchProject('spotkania')" id="pt-spotkania" style="color:var(--purple)">🤝 Spotkania</button>
+    <button class="proj-tab" onclick="switchProject('cykliczne')" id="pt-cykliczne" style="color:var(--green)">🔁 Cykliczne</button>
   </div>
 
   <div class="header">
@@ -1028,6 +1053,7 @@ const SECTIONS_BY_PROJECT = {
   vibecoding: ['todo', 'ai', 'pawel', 'done'],
   telegram:    ['todo', 'done'],
   spotkania:   ['todo', 'zaplanowane', 'done'],
+  cykliczne:   ['todo'],
 };
 
 const DEFAULT_ITEMS = [
@@ -1111,6 +1137,7 @@ const PROJECTS = {
   dp:         { label: 'DOP',               storageKey: 'ai-lista-dp',          defaultItems: [],                     catKey: 'dp'       },
   vns:        { label: 'VNS',               storageKey: 'ai-lista-vns',         defaultItems: DEFAULT_ITEMS_WIDEO,    catKey: 'vns'      },
   szpilki:    { label: 'Zdunek — Szpilki', storageKey: 'ai-lista-szpilki',     defaultItems: DEFAULT_ITEMS_SZPILKI,  catKey: null       },
+  cykliczne:  { label: 'Cykliczne',        storageKey: 'ai-lista-cykliczne',   defaultItems: [],                     catKey: null       },
   vibecoding: { label: 'Vibe Coding',       storageKey: 'ai-lista-vibecoding',  defaultItems: [],                     catKey: null       },
   telegram:   { label: 'Telegram',          storageKey: 'ai-lista-telegram',    defaultItems: [],                     catKey: 'telegram'  },
   spotkania:  { label: 'Spotkania',         storageKey: 'ai-lista-spotkania',   defaultItems: [],                     catKey: null        },
@@ -1601,9 +1628,181 @@ function deleteMeeting(id) {
   renderSpotkania();
 }
 
+// ════════════════════════════════════════
+//  CYKLICZNE (RECURRING TASKS)
+// ════════════════════════════════════════
+const RHYTHMS = {
+  weekly:     { label: 'co tydzień',   days: 7   },
+  monthly:    { label: 'co miesiąc',   days: 30  },
+  quarterly:  { label: 'co 3 miesiące',days: 91  },
+  halfyear:   { label: 'co pół roku',  days: 182 },
+  yearly:     { label: 'co rok',       days: 365 },
+};
+
+function parseRecurrence(item) {
+  const raw = item.note || '';
+  const MARKER = '\n---recurrence---\n';
+  const idx = raw.indexOf(MARKER);
+  if (idx === -1) return { userNote: raw, rhythm: 'yearly', last_done: null };
+  const userNote = raw.slice(0, idx);
+  try { return { userNote, ...JSON.parse(raw.slice(idx + MARKER.length)) }; }
+  catch(e) { return { userNote: raw, rhythm: 'yearly', last_done: null }; }
+}
+
+function buildRecurrence(userNote, rhythm, last_done) {
+  const clean = (userNote || '').trimEnd();
+  return clean + '\n---recurrence---\n' + JSON.stringify({ rhythm, last_done });
+}
+
+function computeNextDue(last_done, rhythm) {
+  if (!last_done) return null;
+  const r = RHYTHMS[rhythm];
+  if (!r) return null;
+  const d = new Date(last_done);
+  d.setDate(d.getDate() + r.days);
+  return d;
+}
+
+function cycStatus(item) {
+  const { rhythm, last_done } = parseRecurrence(item);
+  const nextDue = computeNextDue(last_done, rhythm);
+  if (!nextDue) return { cls: 'cyc-ok', label: 'Nigdy nie zrobione', diff: null };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((nextDue - today) / 86400000);
+  if (diff < 0)  return { cls: 'cyc-overdue', label: `${Math.abs(diff)}d zaległe`,  diff };
+  if (diff === 0) return { cls: 'cyc-soon',    label: 'Dziś!',                      diff };
+  if (diff <= 14) return { cls: 'cyc-soon',    label: `za ${diff}d`,                diff };
+  return              { cls: 'cyc-ok',     label: `za ${diff}d`,                diff };
+}
+
+function renderCykliczne() {
+  const wrap = document.getElementById('sections-wrap');
+  wrap.innerHTML = '';
+
+  const container = document.createElement('div');
+  container.className = 'cyc-wrap';
+
+  // ── Add form ──
+  const form = document.createElement('div');
+  form.className = 'cyc-add-form';
+  form.innerHTML = `
+    <input id="cyc-new-text" placeholder="Nazwa zadania cyklicznego…" />
+    <select id="cyc-new-rhythm">
+      ${Object.entries(RHYTHMS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
+    </select>
+    <input id="cyc-new-lastdone" type="date" title="Data ostatniego wykonania (opcjonalnie)" onclick="try{this.showPicker()}catch(e){}">
+    <button class="btn-cyc-add" onclick="addCyclicTask()">+ Dodaj</button>
+  `;
+  form.querySelector('#cyc-new-text').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addCyclicTask();
+  });
+  container.appendChild(form);
+
+  // ── Sort items by status: overdue → soon → ok, then by diff asc ──
+  const sorted = [...items].sort((a, b) => {
+    const sa = cycStatus(a), sb = cycStatus(b);
+    const order = { 'cyc-overdue': 0, 'cyc-soon': 1, 'cyc-ok': 2 };
+    if (order[sa.cls] !== order[sb.cls]) return order[sa.cls] - order[sb.cls];
+    const da = sa.diff ?? 9999, db = sb.diff ?? 9999;
+    return da - db;
+  });
+
+  if (!sorted.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;color:var(--muted);padding:40px;font-size:14px';
+    empty.textContent = 'Brak zadań cyklicznych. Dodaj pierwsze powyżej.';
+    container.appendChild(empty);
+  }
+
+  // Group by status
+  const groups = [
+    { key: 'cyc-overdue', label: '🔴 Zaległe'       },
+    { key: 'cyc-soon',    label: '🟡 Zbliżające się' },
+    { key: 'cyc-ok',      label: '✅ OK'             },
+  ];
+  groups.forEach(({ key, label }) => {
+    const group = sorted.filter(i => cycStatus(i).cls === key);
+    if (!group.length) return;
+    const hdr = document.createElement('div');
+    hdr.className = 'cyc-section-hdr';
+    hdr.textContent = label;
+    container.appendChild(hdr);
+    group.forEach(item => container.appendChild(makeCycItem(item)));
+  });
+
+  wrap.appendChild(container);
+}
+
+function makeCycItem(item) {
+  const { rhythm, last_done, userNote } = parseRecurrence(item);
+  const rLabel = RHYTHMS[rhythm]?.label || rhythm;
+  const { cls, label } = cycStatus(item);
+  const nextDue = computeNextDue(last_done, rhythm);
+  const nextStr = nextDue ? nextDue.toLocaleDateString('pl-PL', { day:'numeric', month:'short', year:'numeric' }) : '—';
+  const lastStr = last_done ? new Date(last_done).toLocaleDateString('pl-PL', { day:'numeric', month:'short', year:'numeric' }) : 'Nigdy';
+
+  const el = document.createElement('div');
+  el.className = `cyc-item ${cls}`;
+  el.innerHTML = `
+    <div style="flex:1;min-width:0">
+      <div class="cyc-text">${escHtml(item.text)}</div>
+      <div class="cyc-meta">Ostatnio: ${lastStr} · Następne: ${nextStr}${userNote ? ' · ' + escHtml(userNote) : ''}</div>
+    </div>
+    <span class="cyc-rhythm">${rLabel}</span>
+    <span class="cyc-badge ${cls}">${label}</span>
+    <button class="cyc-done-btn" title="Oznacz jako zrobione dziś">✓ Zrobione</button>
+    <button class="cyc-del-btn" title="Usuń">✕</button>
+  `;
+
+  el.querySelector('.cyc-done-btn').addEventListener('click', () => doneCyclicTask(item.id));
+  el.querySelector('.cyc-del-btn').addEventListener('click', () => deleteCyclicTask(item.id));
+  return el;
+}
+
+function addCyclicTask() {
+  const text = document.getElementById('cyc-new-text')?.value.trim();
+  if (!text) return;
+  const rhythm = document.getElementById('cyc-new-rhythm')?.value || 'yearly';
+  const lastVal = document.getElementById('cyc-new-lastdone')?.value || null;
+  const newItem = {
+    id: 'cyc_' + Date.now(),
+    sec: 'todo', quad: null, checked: false, priority: false, pawel: false,
+    text,
+    note: buildRecurrence('', rhythm, lastVal),
+    inProgress: false, cat: null,
+  };
+  items.push(newItem);
+  renderCykliczne();
+  autoSave();
+  document.getElementById('cyc-new-text').value = '';
+  document.getElementById('cyc-new-lastdone').value = '';
+  showToast('✓ Dodano zadanie cykliczne');
+}
+
+function doneCyclicTask(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  const { userNote, rhythm } = parseRecurrence(item);
+  const today = new Date().toISOString().slice(0, 10);
+  item.note = buildRecurrence(userNote, rhythm, today);
+  renderCykliczne();
+  autoSave();
+  const r = RHYTHMS[rhythm];
+  showToast(`✓ Zrobione! Następne: za ${r ? r.days : '?'} dni`);
+}
+
+function deleteCyclicTask(id) {
+  if (!confirm('Usunąć to zadanie cykliczne?')) return;
+  items = items.filter(i => i.id !== id);
+  renderCykliczne();
+  autoSave();
+  sbDelete(id);
+}
+
 function render() {
   if (activeProject === 'projekty') { renderProjectsView(); return; }
   if (activeProject === 'spotkania') { renderSpotkania(); return; }
+  if (activeProject === 'cykliczne') { renderCykliczne(); return; }
 
   renderWeekView();
 
@@ -3095,10 +3294,10 @@ function switchProject(pid) {
   if (form)  form.classList.remove('open');
   if (btn)   btn.innerHTML = '+ Nowe zadanie <kbd style="font-size:9px;opacity:.5">N</kbd>';
 
-  // hide/show add button + filter bar in projects view
+  // hide/show add button + filter bar in projects/cykliczne view
   const filterBar = document.querySelector('.filter-bar');
   const actionsBar = document.querySelector('.actions');
-  const hideUI = pid === 'projekty';
+  const hideUI = pid === 'projekty' || pid === 'cykliczne';
   if (filterBar)  filterBar.style.display  = hideUI ? 'none' : '';
   if (actionsBar) actionsBar.style.display = hideUI ? 'none' : '';
 
@@ -3116,7 +3315,7 @@ function switchProject(pid) {
   const tabEl = document.getElementById('pt-' + pid);
   if (tabEl) tabEl.classList.add('active');
 
-  const titles = { general:'Wszystkie', prywatne:'Prywatne', dp:'DOP', vns:'VNS', projekty:'Projekty', szpilki:'Zdunek — Szpilki', vibecoding:'Vibe Coding' };
+  const titles = { general:'Wszystkie', prywatne:'Prywatne', dp:'DOP', vns:'VNS', projekty:'Projekty', szpilki:'Zdunek — Szpilki', vibecoding:'Vibe Coding', cykliczne:'🔁 Cykliczne' };
   document.getElementById('proj-title').textContent = titles[pid] || (PROJECTS[pid] && PROJECTS[pid].label) || pid;
 }
 
@@ -3389,6 +3588,7 @@ function showMoreNav() {
     { key: 'vibecoding', icon: '💻', label: 'Vibe Coding' },
     { key: 'telegram',   icon: '📲', label: 'Telegram'    },
     { key: 'spotkania',  icon: '🤝', label: 'Spotkania'   },
+    { key: 'cykliczne',  icon: '🔁', label: 'Cykliczne'   },
   ].forEach(({ key, icon, label }) => {
     const b = document.createElement('button');
     b.className = 'sheet-btn';
