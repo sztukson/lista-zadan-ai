@@ -2,7 +2,14 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#39d0c8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI Lista">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Lista Zadań AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -190,7 +197,12 @@
   }
   .badge-cat.cat-prywatne { background: rgba(248,81,73,.15);   color: var(--red);    border: 1px solid rgba(248,81,73,.3);  }
   .badge-cat.cat-dp       { background: rgba(88,166,255,.15);  color: var(--blue);   border: 1px solid rgba(88,166,255,.3);  }
-  .badge-cat.cat-vns      { background: rgba(230,126,34,.15); color: var(--orange); border: 1px solid rgba(230,126,34,.3); }
+  .badge-cat.cat-vns      { background: rgba(230,126,34,.15);  color: var(--orange); border: 1px solid rgba(230,126,34,.3); }
+  .badge-cat.cat-telegram { background: rgba(0,188,212,.15);   color: var(--cyan);   border: 1px solid rgba(0,188,212,.3);  }
+  .badge-cat.cat-szpilki  { background: rgba(163,113,247,.15); color: var(--purple); border: 1px solid rgba(163,113,247,.3);}
+  .badge-cat.cat-vibecoding{ background: rgba(163,113,247,.15);color: var(--purple); border: 1px solid rgba(163,113,247,.3);}
+  .badge-cat { cursor: pointer; }
+  .badge-cat:hover { opacity: .75; }
 
   .item-text { flex: 1; line-height: 1.45; font-size: 12px; min-width: 0; }
 
@@ -204,8 +216,10 @@
     font-family: 'JetBrains Mono', monospace;
     vertical-align: middle; margin: 0 2px;
   }
+  .date-tag.soon    { background: rgba(210,153,34,.2);  color: var(--yellow); border-color: rgba(210,153,34,.45); }
   .date-tag.today   { background: rgba(230,126,34,.22); color: var(--orange); border-color: rgba(230,126,34,.45); }
   .date-tag.overdue { background: rgba(248,81,73,.2);   color: var(--red);    border-color: rgba(248,81,73,.45); }
+  .date-tag.future  { background: rgba(63,185,80,.15);  color: var(--green);  border-color: rgba(63,185,80,.35); }
 
   .badge-p {
     display: inline-flex; align-items: center;
@@ -232,25 +246,90 @@
   .item.is-priority                 { border-left: 2px solid rgba(210,153,34,.5); }
   .item.is-priority .item-text      { font-weight: 500; }
 
-  .btn-edit-item, .btn-delete-item, .btn-note-item, .btn-progress-item {
+  .btn-more-item {
     display: none; background: none; border: none; cursor: pointer;
-    font-size: 13px; padding: 0 3px; flex-shrink: 0;
+    font-size: 18px; padding: 0 4px; flex-shrink: 0; width: 28px; text-align: center;
+    line-height: 1; color: var(--muted); transition: color .12s;
+  }
+  .btn-more-item:hover { color: var(--cyan); }
+  .btn-edit-item, .btn-delete-item, .btn-note-item, .btn-progress-item, .btn-move-item, .btn-date-item {
+    display: none; background: none; border: none; cursor: pointer;
+    font-size: 13px; padding: 0 4px; flex-shrink: 0; width: 22px; text-align: center;
     line-height: 1; transition: color .12s;
   }
   .btn-edit-item         { color: var(--border); margin-left: auto; }
   .btn-delete-item       { color: var(--border); }
   .btn-note-item         { color: var(--border); }
-  .btn-progress-item     { color: var(--border); font-size: 12px; }
-  .item:hover .btn-edit-item      { display: block; color: var(--muted); }
-  .item:hover .btn-delete-item    { display: block; color: var(--muted); }
-  .item:hover .btn-note-item      { display: block; color: var(--muted); }
-  .item:hover .btn-progress-item  { display: block; color: var(--muted); }
+  .btn-progress-item     { color: transparent; }
+  .item:hover .btn-edit-item, .item.item-pinned .btn-edit-item           { display: block; color: var(--muted); }
+  .item:hover .btn-delete-item, .item.item-pinned .btn-delete-item       { display: block; color: var(--muted); }
+  .item:hover .btn-note-item, .item.item-pinned .btn-note-item           { display: block; color: var(--muted); }
+  .item:hover .btn-progress-item, .item.item-pinned .btn-progress-item   { display: block; color: var(--muted); }
+  .item:hover .btn-move-item, .item.item-pinned .btn-move-item           { display: block; color: var(--muted); }
+  .item:hover .btn-date-item, .item.item-pinned .btn-date-item           { display: block; color: var(--muted); }
+  .btn-date-item:hover { color: var(--yellow) !important; }
+  .date-menu {
+    position: fixed; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 3px; min-width: 160px;
+  }
+  .date-menu button {
+    background: none; border: none; color: var(--text); padding: 6px 10px; border-radius: 5px;
+    cursor: pointer; text-align: left; font-size: 12px; white-space: nowrap;
+  }
+  .date-menu button:hover { background: var(--surface); color: var(--yellow); }
+  .date-menu input[type=date] {
+    width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: 5px; padding: 5px 8px; font-size: 12px; margin-top: 2px;
+  }
   .btn-note-item.has-note         { display: block; color: var(--blue); }
-  .btn-progress-item.is-active    { display: block; color: var(--orange); }
+  .btn-progress-item.is-active    { display: block !important; color: var(--green) !important; }
   .btn-edit-item:hover     { color: var(--cyan)   !important; }
   .btn-delete-item:hover   { color: var(--red)    !important; }
   .btn-note-item:hover     { color: var(--blue)   !important; }
-  .btn-progress-item:hover { color: var(--orange) !important; }
+  .item:hover .btn-progress-item  { color: var(--muted); }
+  .btn-progress-item:hover { color: var(--green) !important; }
+  .btn-progress-item.is-active:hover { color: var(--muted) !important; }
+  .btn-move-item { color: var(--border); display: none; }
+  .item:hover .btn-move-item { display: block; color: var(--muted); }
+  .btn-move-item:hover { color: var(--cyan) !important; }
+  .move-menu {
+    position: fixed; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 2px; min-width: 130px;
+  }
+  .move-menu button {
+    background: none; border: none; color: var(--text); padding: 6px 10px; border-radius: 5px;
+    cursor: pointer; text-align: left; font-size: 12px; white-space: nowrap;
+  }
+  .move-menu button:hover { background: var(--surface); color: var(--cyan); }
+
+  /* ── Spotkania ── */
+  .meeting-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 10px; padding: 10px; }
+  .meeting-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; cursor: default; transition: border-color .15s; position: relative; }
+  .meeting-card:hover { border-color: var(--purple); }
+  .meeting-avatar { width: 42px; height: 42px; border-radius: 50%; background: rgba(163,113,247,.2); border: 2px solid rgba(163,113,247,.4); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: var(--purple); margin-bottom: 8px; }
+  .meeting-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .meeting-typ { display: inline-flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+  .meeting-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: .05em; }
+  .meeting-badge.prywatne { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid rgba(248,81,73,.3); }
+  .meeting-badge.biznes   { background: rgba(88,166,255,.15); color: var(--blue); border: 1px solid rgba(88,166,255,.3); }
+  .meeting-note { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .meeting-date { font-size: 11px; color: var(--cyan); margin-top: 5px; }
+  .meeting-actions { display: flex; gap: 4px; margin-top: 10px; }
+  .meeting-btn { flex: 1; background: none; border: 1px solid var(--border); border-radius: 5px; color: var(--muted); font-size: 10px; padding: 4px; cursor: pointer; font-family: inherit; transition: all .12s; }
+  .meeting-btn:hover { border-color: var(--cyan); color: var(--text); }
+  .meeting-btn.done-btn:hover { border-color: var(--green); color: var(--green); }
+  .meeting-btn.del-btn:hover  { border-color: var(--red);   color: var(--red);   }
+  .meeting-sec-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 10px 4px; }
+  .new-meeting-form { padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; border-top: 1px solid var(--border); margin-top: 4px; }
+  .new-meeting-form input, .new-meeting-form select {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 6px 10px; font-size: 12px; font-family: inherit; outline: none;
+  }
+  .new-meeting-form input:focus, .new-meeting-form select:focus { border-color: var(--purple); }
+  .new-meeting-form .btn-add-meeting { background: rgba(163,113,247,.15); border: 1px solid rgba(163,113,247,.4); color: var(--purple); border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .new-meeting-form .btn-add-meeting:hover { background: rgba(163,113,247,.25); }
 
   /* NOTE AREA */
   .note-row {
@@ -266,7 +345,39 @@
   .note-area:focus { border-color: var(--blue); color: var(--text); }
   .note-area::placeholder { color: var(--border); }
 
+  /* ITEM EXPAND */
+  .item.is-expanded { border-color: rgba(57,208,200,.2) !important; background: rgba(57,208,200,.03); }
+  .item-detail {
+    flex-basis: 100%; width: 100%;
+    padding: 6px 8px 4px 76px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  /* SUBTASKS */
+  .subtask-section { display: flex; flex-direction: column; gap: 4px; }
+  .subtask-header { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 0; }
+  .subtask-progress-bar { flex: 1; height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .subtask-progress-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width .3s; }
+  .subtask-count { font-family: 'JetBrains Mono', monospace; color: var(--cyan); }
+  .subtask-item { display: flex; align-items: center; gap: 7px; padding: 5px 0; border-bottom: 1px solid rgba(48,54,61,.5); }
+  .subtask-item:last-child { border-bottom: none; }
+  .st-cb { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .st-cb:hover { border-color: var(--green); }
+  .st-cb.st-done { background: var(--green); border-color: var(--green); }
+  .st-cb.st-done::after { content: '✓'; font-size: 9px; color: #000; font-weight: 900; }
+  .st-text { flex: 1; font-size: 12px; color: var(--text); line-height: 1.4; }
+  .st-text.st-done { text-decoration: line-through; color: var(--muted); }
+  .st-del { background: none; border: none; color: var(--border); cursor: pointer; font-size: 12px; padding: 0 3px; transition: color .12s; }
+  .st-del:hover { color: var(--red); }
+  .subtask-add-row { display: flex; gap: 6px; margin-top: 4px; }
+  .subtask-add-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text); font-family: inherit; font-size: 12px; outline: none; }
+  .subtask-add-input:focus { border-color: var(--cyan); }
+  .subtask-add-input::placeholder { color: var(--border); }
+  .subtask-add-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--cyan); background: rgba(57,208,200,.1); color: var(--cyan); font-size: 11px; font-weight: 700; cursor: pointer; }
+  .st-badge-inline { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; vertical-align: middle; }
+  @media (max-width: 640px) { .item-detail { padding-left: 36px; } }
+
   /* EXPORT/IMPORT */
+  .search-row { display: none; }
   .io-row { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 12px; }
   .btn-io {
     padding: 5px 11px; border-radius: 7px; border: 1px solid var(--border);
@@ -337,7 +448,8 @@
   }
   .add-date:focus { border-color: var(--yellow); }
   .add-date::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
-  .toggle-pawel {
+  .toggle-pawel { display: none !important; }
+  ._toggle-pawel-placeholder {
     display: flex; align-items: center; gap: 6px;
     font-size: 12px; color: var(--muted); cursor: pointer;
     padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border);
@@ -361,107 +473,182 @@
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
 
+  /* ── BOTTOM SHEET (mobile action menu) ── */
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 500;
+    display: flex; align-items: flex-end; justify-content: center;
+    animation: fadeIn .15s;
+  }
+  @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+  .sheet {
+    background: var(--surface); border-radius: 18px 18px 0 0;
+    width: 100%; max-width: 520px;
+    padding: 10px 0 env(safe-area-inset-bottom,16px);
+    animation: slideUp .2s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 12px; }
+  .sheet-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 20px 10px; }
+  .sheet-actions { display: flex; flex-direction: column; }
+  .sheet-btn {
+    display: flex; align-items: center; gap: 14px;
+    padding: 15px 20px; font-size: 15px; font-family: inherit;
+    background: none; border: none; color: var(--text);
+    cursor: pointer; text-align: left; transition: background .1s;
+    border-top: 1px solid var(--border);
+  }
+  .sheet-btn:first-child { border-top: none; }
+  .sheet-btn:active { background: var(--surface2); }
+  .sheet-btn .sh-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+  .sheet-btn.sh-danger { color: var(--red); }
+  .sheet-btn.sh-active { color: var(--yellow); }
+
+  /* ── BOTTOM NAV BAR (mobile) ── */
+  .mobile-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 6px 4px env(safe-area-inset-bottom,6px);
+    z-index: 200; justify-content: space-around; align-items: center;
+  }
+  .mnav-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-family: inherit; padding: 6px 12px; border-radius: 8px; transition: color .15s;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+    min-width: 56px;
+  }
+  .mnav-btn .mn-icon { font-size: 20px; line-height: 1; }
+  .mnav-btn.active { color: var(--cyan); }
+  .mnav-btn:active { background: var(--surface2); }
+
   /* ── MOBILE ── */
   @media (max-width: 640px) {
-    body { padding: 10px 8px 80px; font-size: 13px; }
+    body {
+      padding: calc(env(safe-area-inset-top,0px) + 10px) 0 calc(env(safe-area-inset-bottom,0px) + 62px);
+      font-size: 14px;
+    }
 
-    /* TABS — przewijalne poziomo, nie zawijają */
-    .proj-tabs {
-      flex-wrap: nowrap; overflow-x: auto; gap: 3px; padding: 4px;
+    .container { padding: 0 10px; }
+
+    /* TABS — ukryte, bottom nav zastępuje */
+    .proj-tabs { display: none !important; }
+
+    /* HEADER — kompaktowy, tylko tytuł + status */
+    .header { margin: 10px 0 8px; text-align: left; display: flex; align-items: center; gap: 8px; }
+    .header h1 { font-size: 16px; margin: 0; }
+    .header p  { font-size: 11px; margin: 0; margin-left: auto; }
+
+    /* STATS — jedna pozioma listwa */
+    .overview {
+      display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .overview::-webkit-scrollbar { display: none; }
+    .stat-card {
+      flex: 0 0 auto; min-width: 70px; padding: 7px 10px;
+      display: flex; align-items: center; gap: 6px; text-align: left;
+    }
+    .stat-value { font-size: 18px; margin: 0; }
+    .stat-label { font-size: 9px; white-space: nowrap; }
+
+    /* PROGRESS — schowany na mobile */
+    .main-progress { display: none; }
+
+    /* ACTIONS — poziomy scroll */
+    .actions {
+      flex-wrap: nowrap; overflow-x: auto; gap: 5px; margin-bottom: 8px;
+      padding-bottom: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .actions::-webkit-scrollbar { display: none; }
+    .btn { font-size: 11px; padding: 7px 11px; white-space: nowrap; flex-shrink: 0; }
+
+    /* FILTRY — poziomy scroll */
+    .filter-bar {
+      flex-wrap: nowrap; overflow-x: auto; gap: 5px; margin-bottom: 8px;
       -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
-    .proj-tabs::-webkit-scrollbar { display: none; }
-    .proj-tab { flex: 0 0 auto; font-size: 11px; padding: 8px 11px; white-space: nowrap; }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-label { display: none; }
+    .btn-filter { font-size: 11px; padding: 6px 12px; white-space: nowrap; flex-shrink: 0; border-radius: 20px; }
+    .search-inline { display: none !important; }
+    .search-row { display: block; margin-bottom: 8px; }
 
-    /* HEADER */
-    .header { margin-bottom: 18px; }
-    .header h1 { font-size: 17px; }
-    .header p  { font-size: 11px; }
-
-    /* STATS — 2 kolumny */
-    .overview { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
-    .stat-card { padding: 10px 8px; }
-    .stat-value { font-size: 22px; }
-    .stat-label { font-size: 9px; }
-
-    /* PROGRESS */
-    .main-progress { padding: 10px 12px; margin-bottom: 14px; }
-    .progress-label { font-size: 11px; }
-    .progress-pct   { font-size: 15px; }
-
-    /* ACTIONS — 2 rzędy, mniejsze przyciski */
-    .actions { gap: 4px; }
-    .btn { font-size: 10px; padding: 6px 10px; }
-
-    /* FILTRY */
-    .filter-bar { gap: 4px; margin-bottom: 8px; }
-    .filter-label { font-size: 9px; }
-    .btn-filter { font-size: 10px; padding: 4px 10px; }
-
-    /* WEEK VIEW — poziomy scroll */
+    /* WEEK VIEW */
     .week-view { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .week-grid { grid-template-columns: repeat(7, minmax(80px, 1fr)); min-width: 560px; }
+    .week-grid { grid-template-columns: repeat(7, minmax(72px,1fr)); min-width: 504px; }
     .week-col-hd { font-size: 9px; padding: 4px; }
     .week-item  { font-size: 9px; }
 
     /* SEKCJE */
-    .sec-header { font-size: 11px; padding: 10px 12px; }
-    .sec-count  { font-size: 9px; }
-    .sec-body   { padding: 5px; }
+    .section { margin-bottom: 8px; border-radius: 10px; }
+    .sec-header { font-size: 11px; padding: 10px 12px; letter-spacing: .05em; }
+    .sec-count  { font-size: 10px; }
+    .sec-body   { padding: 4px; }
 
     /* QUADRANTY */
-    .q-header { padding: 9px 10px; font-size: 10px; }
+    .q-header { padding: 9px 12px; font-size: 10px; }
     .q-desc   { display: none; }
-    .q-body   { padding: 4px; }
+    .q-body   { padding: 3px; }
 
-    /* ITEMY — duże targety dotykowe */
-    .item { padding: 11px 8px; gap: 7px; }
-    .cb   { width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; }
-    .cb.checked::after  { font-size: 12px; }
-    .cb.inprogress::after { font-size: 13px; }
-    .num  { font-size: 10px; min-width: 14px; }
+    /* ITEMY — duże, czyste */
+    .item { padding: 13px 8px; gap: 10px; flex-wrap: nowrap; align-items: center; }
+    .sel-cb { display: none; }
+    .cb   { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; border-width: 2px; }
+    .cb.checked::after  { font-size: 14px; }
+    .cb.inprogress::after { font-size: 15px; line-height: 24px; }
+    .num  { display: none; }
     .drag-handle { display: none; }
-    .item-text  { font-size: 13px; line-height: 1.5; }
-    /* przyciski zawsze widoczne na mobile */
-    .btn-edit-item, .btn-delete-item, .btn-note-item { display: block !important; font-size: 15px; padding: 0 3px; color: var(--muted) !important; }
-    .btn-priority { font-size: 16px; }
-    .note-row { padding-left: 40px; }
+    .item-text  { font-size: 14px; line-height: 1.45; }
+    .badge-cat  { font-size: 9px; padding: 1px 5px; }
+    .date-tag   { font-size: 10px; }
+
+    /* Na mobile: tylko ★ i ⋯ */
+    .btn-edit-item, .btn-delete-item, .btn-note-item,
+    .btn-progress-item, .btn-move-item, .btn-date-item { display: none !important; }
+    .btn-priority { font-size: 18px; flex-shrink: 0; color: var(--border); padding: 0; }
+    .btn-priority.active { color: var(--yellow); }
+    .btn-more-item { display: flex !important; align-items: center; justify-content: center; color: var(--muted); font-size: 20px; width: 30px; }
+
+    .note-row { padding-left: 36px; }
+    .note-area { font-size: 13px; }
 
     /* FORMULARZ DODAWANIA */
-    .add-form   { padding: 12px 10px; gap: 8px; }
-    .add-input  { font-size: 14px; padding: 11px 12px; }
+    .add-form   { padding: 12px 10px; gap: 8px; border-radius: 12px; }
+    .add-input  { font-size: 15px; padding: 12px 12px; border-radius: 10px; }
     .add-row    { flex-direction: column; gap: 7px; }
-    .add-select { width: 100%; padding: 9px 10px; font-size: 13px; }
-    .add-date   { width: 100%; padding: 9px 10px; font-size: 13px; }
-    .toggle-pawel { width: 100%; justify-content: center; padding: 9px; font-size: 13px; }
-    .btn-add    { width: 100%; margin-left: 0; padding: 11px; font-size: 13px; }
-    .btn-mic    { width: 44px; height: 44px; font-size: 18px; }
+    .add-select { width: 100%; padding: 10px 10px; font-size: 13px; border-radius: 8px; }
+    .add-date   { width: 100%; padding: 10px 10px; font-size: 13px; border-radius: 8px; }
+    .btn-add    { width: 100%; margin-left: 0; padding: 13px; font-size: 14px; font-weight: 700; border-radius: 10px; }
+    .btn-mic    { width: 46px; height: 46px; font-size: 20px; border-radius: 10px; }
 
-    /* IO ROW */
-    .io-row { gap: 5px; }
-    .btn-io { font-size: 10px; padding: 6px 10px; }
+    /* IO ROW + LOG — ukryte */
+    .io-row     { display: none; }
+    .log-panel  { display: none; }
 
     /* DONE SUBS */
     .done-sub-hd { font-size: 10px; padding: 8px 10px; }
 
-    /* LOG */
-    .log-hd  { font-size: 10px; padding: 8px 12px; }
-    .log-body { max-height: 130px; }
-    .log-entry { font-size: 10px; }
-
     /* VOICE FAB */
-    .voice-fab    { bottom: 14px; right: 14px; width: 48px; height: 48px; font-size: 20px; }
-    .voice-status { bottom: 70px; right: 14px; max-width: calc(100vw - 28px); }
+    .voice-fab    { bottom: 72px; right: 14px; width: 46px; height: 46px; font-size: 20px; }
+    .voice-status { bottom: 128px; right: 14px; max-width: calc(100vw - 28px); }
 
     /* EDIT MODE */
     .item-edit-text  { font-size: 14px; }
     .item-edit-row   { flex-direction: column; gap: 6px; }
     .item-edit-row .add-select { width: 100%; }
     .item-edit-row .add-date   { width: 100%; }
-    .btn-save-edit, .btn-cancel-edit { width: 100%; padding: 9px; font-size: 12px; text-align: center; }
+    .btn-save-edit, .btn-cancel-edit { width: 100%; padding: 11px; font-size: 13px; text-align: center; border-radius: 8px; }
 
     /* TOAST */
-    .toast { bottom: 70px; right: 10px; left: 10px; text-align: center; font-size: 12px; }
+    .toast { bottom: 72px; right: 10px; left: 10px; text-align: center; font-size: 13px; }
+
+    /* BOTTOM NAV */
+    .mobile-nav { display: flex; }
+
+    /* CAL MODAL */
+    .cal-modal { border-radius: 18px 18px 0 0; position: fixed; bottom: 0; left: 0; right: 0; max-height: 80vh; }
+    .cal-overlay { align-items: flex-end; }
   }
 
   /* MIC BUTTON */
@@ -553,7 +740,7 @@
 
   /* BULK TOOLBAR */
   .item.selected { background:rgba(57,208,200,.08) !important; border-color:var(--cyan) !important; }
-  .bulk-toolbar { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--cyan); border-radius:10px; padding:10px 16px; display:flex; gap:8px; align-items:center; z-index:150; box-shadow:0 4px 20px rgba(0,0,0,.4); }
+  .bulk-toolbar { display:none !important; }
   .bulk-count { font-size:12px; font-weight:700; color:var(--cyan); }
   .btn-bulk { padding:5px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .12s; }
   .btn-bulk:hover { border-color:var(--cyan); color:var(--text); }
@@ -595,6 +782,8 @@
     <button class="proj-tab" onclick="switchProject('vns')" id="pt-vns" style="color:var(--orange)">📱 VNS</button>
     <button class="proj-tab" onclick="switchProject('projekty')" id="pt-projekty" style="color:var(--purple)">📂 Projekty</button>
     <button class="proj-tab" onclick="switchProject('vibecoding')" id="pt-vibecoding" style="color:var(--purple)">💻 Vibe Coding</button>
+    <button class="proj-tab" onclick="switchProject('telegram')" id="pt-telegram" style="color:var(--cyan)">📲 Telegram</button>
+    <button class="proj-tab" onclick="switchProject('spotkania')" id="pt-spotkania" style="color:var(--purple)">🤝 Spotkania</button>
   </div>
 
   <div class="header">
@@ -630,7 +819,18 @@
     <button class="btn-filter"        id="f-priority"   onclick="setFilter('priority')">★ Priorytet</button>
     <button class="btn-filter"        id="f-inprogress" onclick="setFilter('inprogress')" style="color:var(--orange)">… W trakcie</button>
     <button class="btn-filter"        id="f-today"      onclick="setFilter('today')">📅 Dziś</button>
-    <button class="btn-filter"        id="f-pawel"      onclick="setFilter('pawel')">[P] Paweł</button>
+    <button class="btn-filter"        id="f-overdue"    onclick="setFilter('overdue')" style="color:var(--red)">🔴 Przeterminowane</button>
+    <input id="search-input" type="text" placeholder="🔍 Szukaj…" oninput="setSearch(this.value)"
+      class="search-inline"
+      style="background:var(--surface);border:1px solid var(--border);color:var(--text);
+             border-radius:6px;padding:4px 10px;font-size:12px;font-family:inherit;width:160px;outline:none;"
+      onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'">
+  </div>
+  <div class="search-row">
+    <input id="search-input-mobile" type="text" placeholder="🔍 Szukaj zadań…" oninput="setSearch(this.value)"
+      style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);
+             border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;"
+      onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'">
   </div>
 
   <div class="week-view" id="week-view-card"></div>
@@ -658,7 +858,7 @@
         <option value="q3">🟠 Pilne + Nieważne</option>
         <option value="q4">⚪ Niepilne + Nieważne</option>
       </select>
-      <input class="add-date" id="new-date" type="date">
+      <input class="add-date" id="new-date" type="date" onclick="try{this.showPicker()}catch(e){}">
       <label class="toggle-pawel" id="lbl-pawel" onclick="togglePawelFlag()">
         <input type="checkbox" id="new-pawel"> [P] Paweł
       </label>
@@ -808,10 +1008,11 @@ const QUADS_COLLAPSED     = { q1:false, q2:false, q3:true, q4:true };
 const DONE_SUBS_COLLAPSED = { 'ds-todo':false, 'ds-ai':false, 'ds-pawel':false };
 
 const SECTIONS_DEF = [
-  { id:'todo',  label:'Do Zrobienia',  color:'var(--cyan)',   collapsed:false },
-  { id:'ai',    label:'Pytania do AI', color:'var(--blue)',   collapsed:true  },
-  { id:'pawel', label:'Pytania do Pawła', color:'var(--purple)', collapsed:true  },
-  { id:'done',  label:'Zrobione ✓',   color:'var(--green)',  collapsed:true  },
+  { id:'todo',        label:'Do Zrobienia',    color:'var(--cyan)',   collapsed:false },
+  { id:'zaplanowane', label:'Zaplanowane 📅',  color:'var(--blue)',   collapsed:false },
+  { id:'ai',          label:'Pytania do AI',   color:'var(--blue)',   collapsed:true  },
+  { id:'pawel',       label:'Pytania do Pawła',color:'var(--purple)', collapsed:true  },
+  { id:'done',        label:'Zrobione ✓',      color:'var(--green)',  collapsed:true  },
 ];
 
 const SECTIONS_BY_PROJECT = {
@@ -822,6 +1023,8 @@ const SECTIONS_BY_PROJECT = {
   projekty:   ['todo', 'done'],
   szpilki:    ['todo', 'done'],
   vibecoding: ['todo', 'ai', 'pawel', 'done'],
+  telegram:    ['todo', 'done'],
+  spotkania:   ['todo', 'zaplanowane', 'done'],
 };
 
 const DEFAULT_ITEMS = [
@@ -906,9 +1109,11 @@ const PROJECTS = {
   vns:        { label: 'VNS',               storageKey: 'ai-lista-vns',         defaultItems: DEFAULT_ITEMS_WIDEO,    catKey: 'vns'      },
   szpilki:    { label: 'Zdunek — Szpilki', storageKey: 'ai-lista-szpilki',     defaultItems: DEFAULT_ITEMS_SZPILKI,  catKey: null       },
   vibecoding: { label: 'Vibe Coding',       storageKey: 'ai-lista-vibecoding',  defaultItems: [],                     catKey: null       },
+  telegram:   { label: 'Telegram',          storageKey: 'ai-lista-telegram',    defaultItems: [],                     catKey: 'telegram'  },
+  spotkania:  { label: 'Spotkania',         storageKey: 'ai-lista-spotkania',   defaultItems: [],                     catKey: null        },
 };
 
-const CAT_PROJECTS = ['prywatne', 'dp', 'vns'];
+const CAT_PROJECTS = ['prywatne', 'dp', 'vns', 'telegram'];
 const SUB_PROJECTS = {
   szpilki: { label: 'Zdunek — Szpilki', icon: '🎭', desc: 'Teledysk / produkcja' },
 };
@@ -949,6 +1154,7 @@ let sections = JSON.parse(JSON.stringify(SECTIONS_DEF));
 let dragState = { id: null };
 let editingId = null;
 let activeFilter = 'all';
+let activeSearch = '';
 let weekViewOpen = false;
 const openNotes = new Set();
 
@@ -1046,8 +1252,10 @@ function highlightDates(text) {
       let label = match;
       if (dt) {
         const diffDays = Math.round((dt - TODAY) / 86400000);
-        if      (dt < TODAY)                       cls += ' overdue';
-        else if (dt.getTime() === TODAY.getTime()) cls += ' today';
+        if      (diffDays < 0)   cls += ' overdue';
+        else if (diffDays === 0) cls += ' today';
+        else if (diffDays <= 3)  cls += ' soon';
+        else                     cls += ' future';
         const dayName = DAY_SHORT[dt.getDay()];
         let counter = '';
         if      (diffDays === 0)  counter = ' dziś';
@@ -1075,16 +1283,39 @@ function fmtTs(iso) {
 }
 
 function getItemDate(item) {
-  const m = item.text.match(/\d{1,2}[.\/-]\d{2}(?:[.\/-]\d{2,4})?/);
-  return m ? parseDate(m[0]) : null;
+  const notePart = parseItemNote(item).notePart;
+  const m = notePart.match(/📅\s*(\d{1,2}\.\d{2}(?:\.\d{2,4})?)/);
+  return m ? parseDate(m[1]) : null;
+}
+function getItemDateStr(item) {
+  const notePart = parseItemNote(item).notePart;
+  const m = notePart.match(/📅\s*(\d{1,2}\.\d{2}(?:\.\d{2,4})?)/);
+  return m ? m[1] : null;
+}
+
+function parseItemNote(item) {
+  const raw = item.note || '';
+  const MARKER = '\n---subtasks---\n';
+  const idx = raw.indexOf(MARKER);
+  if (idx === -1) return { notePart: raw, subtasks: [] };
+  const notePart = raw.slice(0, idx);
+  try { return { notePart, subtasks: JSON.parse(raw.slice(idx + MARKER.length)) }; }
+  catch(e) { return { notePart: raw, subtasks: [] }; }
+}
+
+function buildItemNote(notePart, subtasks) {
+  const clean = (notePart || '').replace(/\n---subtasks---\n[\s\S]*$/, '').trimEnd();
+  if (!subtasks || !subtasks.length) return clean;
+  return clean + '\n---subtasks---\n' + JSON.stringify(subtasks);
 }
 
 // ════════════════════════════════════════
 //  FILTER
 // ════════════════════════════════════════
 function setFilter(f) {
+  if (activeFilter === f) f = 'all';
   activeFilter = f;
-  ['all','priority','pawel','today','inprogress','prywatne','firmowe','dop','projekty'].forEach(k => {
+  ['all','priority','today','overdue','inprogress','prywatne','firmowe','dop','projekty'].forEach(k => {
     const el = document.getElementById('f-'+k);
     if (el) el.classList.toggle('active', k === f);
   });
@@ -1106,7 +1337,27 @@ function applyFilter(list) {
       return dt && dt.getTime() === TODAY.getTime();
     });
   }
+  if (activeFilter === 'overdue') {
+    return list.filter(i => {
+      const dt = getItemDate(i);
+      return dt && dt < TODAY && !i.checked;
+    });
+  }
   return list;
+}
+
+function setSearch(val) {
+  activeSearch = val.trim().toLowerCase();
+  const other = val === document.getElementById('search-input')?.value
+    ? document.getElementById('search-input-mobile')
+    : document.getElementById('search-input');
+  if (other && other.value !== val) other.value = val;
+  render();
+}
+
+function applySearch(list) {
+  if (!activeSearch) return list;
+  return list.filter(i => i.text.toLowerCase().includes(activeSearch) || parseItemNote(i).notePart.toLowerCase().includes(activeSearch));
 }
 
 // ════════════════════════════════════════
@@ -1224,16 +1475,152 @@ function renderProjectsView() {
 // ════════════════════════════════════════
 //  RENDER
 // ════════════════════════════════════════
-function render() {
-  if (activeProject === 'projekty') {
-    renderProjectsView();
-    return;
+// ════════════════════════════════════════
+//  SPOTKANIA VIEW
+// ════════════════════════════════════════
+function initials(name) {
+  return name.split(/\s+/).slice(0,2).map(w => w[0]||'').join('').toUpperCase() || '?';
+}
+function renderSpotkania() {
+  document.getElementById('week-view-card').innerHTML = '';
+  const wrap = document.getElementById('sections-wrap');
+  wrap.innerHTML = '';
+
+  const SECS = [
+    { id:'todo',        label:'📋 Do zaplanowania' },
+    { id:'zaplanowane', label:'📅 Zaplanowane'     },
+    { id:'done',        label:'✅ Odbyte'           },
+  ];
+
+  SECS.forEach(({ id, label }) => {
+    const secItems = items.filter(i => i.sec === id);
+    const block = document.createElement('div');
+    block.innerHTML = `<div class="meeting-sec-label">${label} <span style="color:var(--border)">(${secItems.length})</span></div>`;
+    const grid = document.createElement('div');
+    grid.className = 'meeting-grid';
+
+    secItems.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'meeting-card';
+      const typs = (item.cat||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const noteWithoutDate = parseItemNote(item).notePart.replace(/📅[\d\.]+/g,'').trim();
+      const dateStr = getItemDateStr(item);
+      card.innerHTML = `
+        <div class="meeting-avatar">${initials(item.text)}</div>
+        <div class="meeting-name">${escHtml(item.text)}</div>
+        <div class="meeting-typ">
+          ${typs.includes('prywatne') ? '<span class="meeting-badge prywatne">Prywatne</span>' : ''}
+          ${typs.includes('biznes')   ? '<span class="meeting-badge biznes">Biznes</span>' : ''}
+        </div>
+        ${dateStr ? `<div class="meeting-date">📅 ${dateStr}</div>` : ''}
+        ${noteWithoutDate ? `<div class="meeting-note">${escHtml(noteWithoutDate)}</div>` : ''}
+        <div class="meeting-actions">
+          ${id === 'todo'        ? `<button class="meeting-btn" onclick="moveMeeting('${item.id}','zaplanowane')">📅 Zaplanuj</button>` : ''}
+          ${id === 'zaplanowane' ? `<button class="meeting-btn" onclick="moveMeeting('${item.id}','todo')">↩ Cofnij</button>` : ''}
+          ${id !== 'done'        ? `<button class="meeting-btn done-btn" onclick="moveMeeting('${item.id}','done')">✅ Odbyte</button>` : ''}
+          <button class="meeting-btn del-btn" onclick="deleteMeeting('${item.id}')">✕</button>
+        </div>`;
+      grid.appendChild(card);
+    });
+
+    if (secItems.length === 0 && id === 'todo') {
+      grid.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--border)">Brak spotkań do zaplanowania</div>';
+    }
+    block.appendChild(grid);
+    wrap.appendChild(block);
+  });
+
+  // formularz nowego spotkania
+  const form = document.createElement('div');
+  form.className = 'new-meeting-form';
+  form.innerHTML = `
+    <input id="nm-name" placeholder="Osoba — imię i nazwisko" style="flex:2;min-width:160px">
+    <select id="nm-typ">
+      <option value="prywatne">Prywatne</option>
+      <option value="biznes">Biznes</option>
+      <option value="prywatne,biznes">Oba</option>
+    </select>
+    <input id="nm-date" type="date" title="Data spotkania (opcjonalna)">
+    <input id="nm-note" placeholder="Notatka (opcjonalna)" style="flex:2;min-width:140px">
+    <button class="btn-add-meeting" onclick="addMeeting()">+ Dodaj</button>`;
+  wrap.appendChild(form);
+}
+
+function addMeeting(name, typ, dateStr, note) {
+  const nm = name || document.getElementById('nm-name')?.value.trim();
+  if (!nm) { document.getElementById('nm-name')?.focus(); return; }
+  const t = typ  || document.getElementById('nm-typ')?.value  || 'prywatne';
+  const d = dateStr || (()=>{ const v=document.getElementById('nm-date')?.value; if(!v) return ''; const dt=new Date(v); return (dt.getDate()).toString().padStart(2,'0')+'.'+(dt.getMonth()+1).toString().padStart(2,'0'); })();
+  const n = note || document.getElementById('nm-note')?.value.trim() || '';
+  const row = {
+    id: crypto.randomUUID(), project:'spotkania', sec:'todo', quad:'q2',
+    text: nm, checked:false, in_progress:false, priority:false, pawel:false,
+    cat: t, note: (d ? '📅'+d+'\n' : '') + n, completed_at:null, prev_sec:null, prev_quad:null,
+  };
+  sb.table('tasks').insert(row).catch(e => console.warn(e));
+  items.push({ id:row.id, sec:'todo', quad:'q2', text:nm, checked:false, inProgress:false, priority:false, pawel:false, cat:t, note:row.note, completedAt:null, _prevSec:null, _prevQuad:null });
+  renderSpotkania();
+  if (document.getElementById('nm-name')) {
+    document.getElementById('nm-name').value = '';
+    document.getElementById('nm-date').value = '';
+    document.getElementById('nm-note').value = '';
   }
+}
+
+function moveMeeting(id, targetSec) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item.sec = targetSec;
+  item.checked = targetSec === 'done';
+  sb.table('tasks').update({sec: targetSec, checked: item.checked}).eq('id', id).catch(e => console.warn(e));
+  renderSpotkania();
+}
+
+function deleteMeeting(id) {
+  items = items.filter(i => i.id !== id);
+  sb.table('tasks').delete().eq('id', id).catch(e => console.warn(e));
+  renderSpotkania();
+}
+
+function render() {
+  if (activeProject === 'projekty') { renderProjectsView(); return; }
+  if (activeProject === 'spotkania') { renderSpotkania(); return; }
 
   renderWeekView();
 
   const wrap = document.getElementById('sections-wrap');
   wrap.innerHTML = '';
+
+  // ── Overdue block ──────────────────────────────────────────────────────────
+  const overdue = items.filter(i => !i.checked && (() => { const dt = getItemDate(i); return dt && dt < TODAY; })());
+  const makeOverdueBlock = () => {
+    const od = document.createElement('div');
+    od.className = 'section overdue-block';
+    const hasItems = overdue.length > 0;
+    od.style.cssText = hasItems
+      ? 'border-color:rgba(248,81,73,.5);background:rgba(248,81,73,.06)'
+      : 'border-color:rgba(248,81,73,.2);opacity:.5';
+    od.innerHTML = `<div class="sec-header" style="color:var(--red)">
+      <span class="sec-chevron" style="${hasItems?'':'transform:rotate(-90deg)'}">▾</span>
+      <span class="sec-title">${hasItems ? '🔴' : '✅'} Przeterminowane</span>
+      ${hasItems ? `<span class="sec-count">${overdue.length}</span>` : ''}
+    </div><div class="sec-body" style="${hasItems?'':'display:none'}" id="od-body"></div>`;
+    if (hasItems) {
+      const body = od.querySelector('#od-body');
+      overdue.forEach((item, idx) => body.appendChild(makeItem(item, idx + 1)));
+    }
+    od.querySelector('.sec-header').addEventListener('click', () => {
+      const chev = od.querySelector('.sec-chevron');
+      const b = od.querySelector('.sec-body');
+      const hidden = b.style.display === 'none';
+      b.style.display = hidden ? '' : 'none';
+      chev.style.transform = hidden ? '' : 'rotate(-90deg)';
+    });
+    return od;
+  };
+  if (overdue.length) wrap.insertBefore(makeOverdueBlock(), wrap.firstChild);
+  else wrap._overdueBlock = makeOverdueBlock(); // append at end after sections render
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Back button when inside a sub-project
   if (projectsSubView) {
@@ -1274,6 +1661,8 @@ function render() {
     }
   });
 
+  if (wrap._overdueBlock) { wrap.appendChild(wrap._overdueBlock); delete wrap._overdueBlock; }
+
   updateStats();
 }
 
@@ -1291,7 +1680,14 @@ function renderMatrix(body) {
 
   QUADS.forEach(q => {
     const raw = items.filter(i => i.sec === 'todo' && i.quad === q.id && !i.checked);
-    const filtered = applyFilter(raw);
+    const filtered = applySearch(applyFilter(raw)).sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority ? -1 : 1;
+      const da = getItemDate(a), db = getItemDate(b);
+      if (da && !db) return -1;
+      if (!da && db) return 1;
+      if (da && db) return da - db;
+      return 0;
+    });
     const collapsed = QUADS_COLLAPSED[q.id];
 
     const qEl = document.createElement('div');
@@ -1328,7 +1724,15 @@ function renderMatrix(body) {
 
 // ── Flat list ──
 function renderFlatList(body, sec, secItems) {
-  const filtered = applyFilter(secItems);
+  const filtered = applySearch(applyFilter(secItems)).sort((a, b) => {
+    if (sec.id === 'done') return 0;
+    if (a.priority !== b.priority) return a.priority ? -1 : 1;
+    const da = getItemDate(a), db = getItemDate(b);
+    if (da && !db) return -1;
+    if (!da && db) return 1;
+    if (da && db) return da - db;
+    return 0;
+  });
   if (filtered.length === 0) {
     body.innerHTML = `<div class="empty-zone">${activeFilter !== 'all' ? 'Brak dla wybranego filtru' : 'Przeciągnij tutaj'}</div>`;
   } else {
@@ -1444,7 +1848,7 @@ function makeItem(item, num) {
             <option value="q3" ${curQuad==='q3'?'selected':''}>🟠 Pilne + Nieważne</option>
             <option value="q4" ${curQuad==='q4'?'selected':''}>⚪ Niepilne + Nieważne</option>
           </select>
-          <input class="add-date" id="eid-${item.id}" type="date" title="Dołącz datę do tekstu">
+          <input class="add-date" id="eid-${item.id}" type="date" title="Dołącz datę do tekstu" onclick="try{this.showPicker()}catch(e){}">
           <label class="toggle-pawel ${item.pawel?'active':''}" id="eip-${item.id}" onclick="toggleEditPawel('${item.id}')">
             <input type="checkbox" ${item.pawel?'checked':''}> [P] Paweł
           </label>
@@ -1465,17 +1869,23 @@ function makeItem(item, num) {
 
   // ── NORMAL MODE ──
   const noteOpen = openNotes.has(item.id);
-  const hasNote  = !!(item.note && item.note.trim());
+  const { notePart, subtasks } = parseItemNote(item);
+  const noteDisplay = notePart.replace(/📅\s*\d{1,2}\.\d{2}(?:\.\d{2,4})?\s*/g, '').trim();
+  const hasNote = !!(noteDisplay);
+  const hasSubtasks = subtasks.length > 0;
+  const doneSubtasks = subtasks.filter(s => s.checked).length;
 
-  const catLabels = { prywatne:'Prywatne', dp:'DOP', vns:'VNS' };
+  const catLabels = { prywatne:'Prywatne', dp:'DOP', vns:'VNS', telegram:'Telegram', szpilki:'Szpilki', vibecoding:'Vibe' };
   el.className = 'item'
     + (item.checked    ? ' is-done'       : '')
     + (item.inProgress ? ' is-inprogress' : '')
     + (item.priority   ? ' is-priority'   : '')
-    + (selectedIds.has(item.id) ? ' selected' : '');
+    + (selectedIds.has(item.id) ? ' selected' : '')
+    + (noteOpen        ? ' is-expanded'   : '');
   el.draggable = true;
 
   const cbCls = item.checked ? 'checked' : (item.inProgress ? 'inprogress' : '');
+  const stBadge = hasSubtasks ? `<span class="st-badge-inline" title="Podzadania: ${doneSubtasks}/${subtasks.length}">▸ ${doneSubtasks}/${subtasks.length}</span>` : '';
   el.innerHTML = `
     <div class="sel-cb" onclick="event.stopPropagation();toggleSelect('${item.id}')" title="Zaznacz"></div>
     <span class="num">${num}.</span>
@@ -1483,46 +1893,105 @@ function makeItem(item, num) {
     <button class="btn-priority ${item.priority?'active':''}"
             onclick="event.stopPropagation();togglePriority('${item.id}')"
             title="${item.priority?'Usuń priorytet':'Ustaw priorytet'}">★</button>
-    <div class="cb ${cbCls}" data-cbid="${item.id}" title="Kliknij: ☐→W trakcie→✓"></div>
+    <div class="cb ${cbCls}" data-cbid="${item.id}" title="Kliknij: ☐→✓"></div>
     <div class="item-text" ondblclick="event.stopPropagation();openEdit('${item.id}')">
-      ${highlightDates(item.text)}
-      ${item.pawel ? '<span class="badge-p">[P]</span>' : ''}
-      ${item.cat   ? `<span class="badge-cat cat-${item.cat}">${catLabels[item.cat]||item.cat}</span>` : ''}
+      ${escHtml(item.text)}${stBadge}${(() => { const ds = getItemDateStr(item); if (!ds) return ''; const dt = parseDate(ds); const diffDays = dt ? Math.round((dt - TODAY)/86400000) : null; let cls = 'date-tag'; if (dt && dt < TODAY) cls += ' overdue'; else if (dt && diffDays === 0) cls += ' today'; else if (dt && diffDays <= 2) cls += ' today'; else if (dt && diffDays <= 7) cls += ' soon'; else if (dt) cls += ' future'; const label = diffDays===0?' dziś':diffDays===1?' jutro':diffDays>0?` za ${diffDays}d`:diffDays!==null?` ${Math.abs(diffDays)}d temu`:''; return ` <span class="${cls}" style="cursor:pointer" onclick="event.stopPropagation();showDateMenu('${item.id}',event)" title="Zmień datę">📅 ${ds}${label}</span>`; })()}
+      ${(item.cat || activeProject !== 'general') ? `<span class="badge-cat cat-${item.cat||activeProject}" onclick="event.stopPropagation();showMoveMenu('${item.id}',event)" title="Zmień projekt">${catLabels[item.cat||activeProject]||item.cat||activeProject}</span>` : ''}
     </div>
     <button class="btn-progress-item ${item.inProgress?'is-active':''}" onclick="event.stopPropagation();toggleInProgress('${item.id}')" title="${item.inProgress?'Usuń W trakcie':'Oznacz jako W trakcie'}">⏳</button>
-    <button class="btn-note-item ${hasNote?'has-note':''}" onclick="event.stopPropagation();toggleNote('${item.id}')" title="${noteOpen?'Schowaj notatkę':'Pokaż notatkę'}">📝</button>
+    <button class="btn-note-item ${(hasNote||hasSubtasks)?'has-note':''}" onclick="event.stopPropagation();toggleNote('${item.id}')" title="${noteOpen?'Schowaj':'Rozwiń (notatka/podzadania)'}">📝</button>
+    <button class="btn-date-item"   onclick="event.stopPropagation();showDateMenu('${item.id}',event)" title="Dodaj datę">📅</button>
     <button class="btn-edit-item"   onclick="event.stopPropagation();openEdit('${item.id}')"   title="Edytuj">✏</button>
     <button class="btn-delete-item" onclick="event.stopPropagation();deleteItem('${item.id}')" title="Usuń">✕</button>
+    <button class="btn-more-item"   onclick="event.stopPropagation();showItemSheet('${item.id}')" title="Więcej">⋯</button>
   `;
 
-  // Note area row
+  // Expand panel (note + subtasks) — visible when noteOpen
   if (noteOpen) {
-    const noteRow = document.createElement('div');
-    noteRow.className = 'note-row';
+    const detail = document.createElement('div');
+    detail.className = 'item-detail';
+
+    // Note textarea
     const ta = document.createElement('textarea');
     ta.className = 'note-area';
     ta.placeholder = 'Notatka do zadania…';
-    ta.value = item.note || '';
+    ta.value = noteDisplay;
     ta.rows = 2;
+    ta.setAttribute('data-noteid', item.id);
     ta.addEventListener('input', e => {
-      item.note = e.target.value;
-      // update btn-note indicator without full re-render
-      const btn = el.querySelector('.btn-note-item');
-      if (btn) btn.classList.toggle('has-note', !!(e.target.value.trim()));
+      const { subtasks: st } = parseItemNote(item);
+      const datePrefix = notePart.match(/^📅\s*[\d.]+/) ? notePart.match(/^📅\s*[\d.]+/)[0] : null;
+      const newNote = datePrefix ? (datePrefix + (e.target.value ? '\n' + e.target.value : '')) : e.target.value;
+      item.note = buildItemNote(newNote, st);
       autoSave();
     });
     ta.addEventListener('click', e => e.stopPropagation());
     ta.addEventListener('keydown', e => {
       if (e.key === 'Escape') { openNotes.delete(item.id); render(); }
     });
-    noteRow.appendChild(ta);
-    el.appendChild(noteRow);
-    setTimeout(() => ta.focus(), 20);
+    detail.appendChild(ta);
+
+    // Subtasks section
+    const stSection = document.createElement('div');
+    stSection.className = 'subtask-section';
+
+    if (hasSubtasks) {
+      const hdr = document.createElement('div');
+      hdr.className = 'subtask-header';
+      const pct = subtasks.length ? Math.round(doneSubtasks / subtasks.length * 100) : 0;
+      hdr.innerHTML = `<span>Podzadania</span><span class="subtask-count">${doneSubtasks}/${subtasks.length}</span><div class="subtask-progress-bar"><div class="subtask-progress-fill" style="width:${pct}%"></div></div>`;
+      stSection.appendChild(hdr);
+
+      subtasks.forEach((st, idx) => {
+        const row = document.createElement('div');
+        row.className = 'subtask-item';
+        row.innerHTML = `
+          <div class="st-cb ${st.checked?'st-done':''}" title="${st.checked?'Odznacz':'Zaznacz'}"></div>
+          <span class="st-text ${st.checked?'st-done':''}">${escHtml(st.text)}</span>
+          <button class="st-del" title="Usuń podzadanie">✕</button>
+        `;
+        row.querySelector('.st-cb').addEventListener('click', e => { e.stopPropagation(); toggleSubtask(item.id, idx); });
+        row.querySelector('.st-del').addEventListener('click', e => { e.stopPropagation(); deleteSubtask(item.id, idx); });
+        stSection.appendChild(row);
+      });
+    }
+
+    // Add subtask input
+    const addRow = document.createElement('div');
+    addRow.className = 'subtask-add-row';
+    const addInput = document.createElement('input');
+    addInput.className = 'subtask-add-input';
+    addInput.placeholder = '+ dodaj podzadanie…';
+    addInput.addEventListener('click', e => e.stopPropagation());
+    addInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && addInput.value.trim()) {
+        e.preventDefault();
+        addSubtask(item.id, addInput.value.trim());
+      }
+    });
+    const addBtn = document.createElement('button');
+    addBtn.className = 'subtask-add-btn';
+    addBtn.textContent = '+ Dodaj';
+    addBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (addInput.value.trim()) addSubtask(item.id, addInput.value.trim());
+    });
+    addRow.appendChild(addInput);
+    addRow.appendChild(addBtn);
+    stSection.appendChild(addRow);
+
+    detail.appendChild(stSection);
+    el.appendChild(detail);
   }
 
   el.querySelector('.cb').addEventListener('click', e => {
     e.stopPropagation();
     toggleCheck(item.id);
+  });
+
+  el.querySelector('.item-text').addEventListener('click', e => {
+    e.stopPropagation();
+    toggleNote(item.id);
   });
 
   el.addEventListener('dragstart', e => {
@@ -1576,9 +2045,142 @@ function toggleNote(id) {
   render();
 }
 
+function addSubtask(parentId, text) {
+  const item = items.find(i => i.id === parentId);
+  if (!item) return;
+  pushHistory();
+  const { notePart, subtasks } = parseItemNote(item);
+  subtasks.push({ id: 'st_' + Date.now(), text, checked: false });
+  item.note = buildItemNote(notePart, subtasks);
+  render(); autoSave();
+}
+
+function toggleSubtask(parentId, idx) {
+  const item = items.find(i => i.id === parentId);
+  if (!item) return;
+  const { notePart, subtasks } = parseItemNote(item);
+  if (subtasks[idx]) subtasks[idx].checked = !subtasks[idx].checked;
+  item.note = buildItemNote(notePart, subtasks);
+  render(); autoSave();
+}
+
+function deleteSubtask(parentId, idx) {
+  const item = items.find(i => i.id === parentId);
+  if (!item) return;
+  pushHistory();
+  const { notePart, subtasks } = parseItemNote(item);
+  subtasks.splice(idx, 1);
+  item.note = buildItemNote(notePart, subtasks);
+  render(); autoSave();
+}
+
 // ════════════════════════════════════════
 //  EDIT ACTIONS
 // ════════════════════════════════════════
+let _moveMenuEl = null;
+let _moveMenuId = null;
+let _pinnedItemEl = null;
+let _dateMenuEl = null;
+
+function closeDateMenu() { if (_dateMenuEl) { _dateMenuEl.remove(); _dateMenuEl = null; } }
+
+function fmtDate(d) {
+  return (d.getDate()).toString().padStart(2,'0') + '.' + (d.getMonth()+1).toString().padStart(2,'0');
+}
+function showDateMenu(id, event) {
+  closeDateMenu(); closeMoveMenu();
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+  const lastUsed = localStorage.getItem('lastItemDate');
+
+  const menu = document.createElement('div');
+  menu.className = 'date-menu';
+
+  const opts = [
+    { label: '📅 Dziś — ' + fmtDate(today), val: fmtDate(today) },
+    { label: '➡ Jutro — ' + fmtDate(tomorrow), val: fmtDate(tomorrow) },
+  ];
+  if (lastUsed && lastUsed !== fmtDate(today) && lastUsed !== fmtDate(tomorrow)) {
+    opts.push({ label: '🕐 Ostatnia — ' + lastUsed, val: lastUsed });
+  }
+  opts.push({ label: '🗑 Usuń datę', val: null });
+
+  opts.forEach(({ label, val }) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.onclick = e => { e.stopPropagation(); applyItemDate(id, val); closeDateMenu(); };
+    menu.appendChild(btn);
+  });
+
+  // custom date input
+  const inp = document.createElement('input');
+  inp.type = 'date';
+  inp.addEventListener('click', e => e.stopPropagation());
+  inp.addEventListener('change', e => {
+    const d = new Date(e.target.value);
+    if (!isNaN(d)) applyItemDate(id, fmtDate(d));
+    closeDateMenu();
+  });
+  menu.appendChild(inp);
+
+  menu.addEventListener('click', e => e.stopPropagation());
+  const rect = event.target.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 175) + 'px';
+  document.body.appendChild(menu);
+  _dateMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', closeDateMenu, { once: true }), 0);
+}
+
+function applyItemDate(id, dateStr) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  pushHistory();
+  const { notePart, subtasks } = parseItemNote(item);
+  const notePureWithoutDate = notePart.replace(/📅\s*\d{1,2}\.\d{2}(?:\.\d{2,4})?\s*/g, '').trim();
+  const newNotePart = dateStr ? ('📅' + dateStr + (notePureWithoutDate ? '\n' + notePureWithoutDate : '')) : notePureWithoutDate;
+  item.note = buildItemNote(newNotePart, subtasks);
+  if (dateStr) localStorage.setItem('lastItemDate', dateStr);
+  render(); autoSave();
+}
+function closeMoveMenu() {
+  if (_moveMenuEl) { _moveMenuEl.remove(); _moveMenuEl = null; _moveMenuId = null; }
+}
+function showMoveMenu(id, event) {
+  if (_moveMenuId === id) { closeMoveMenu(); return; }
+  closeMoveMenu();
+  const targets = Object.entries(PROJECTS)
+    .filter(([k]) => k !== 'general' && k !== activeProject)
+    .map(([k, v]) => ({ key: k, label: v.label }));
+  const menu = document.createElement('div');
+  menu.className = 'move-menu';
+  targets.forEach(({ key, label }) => {
+    const btn = document.createElement('button');
+    btn.textContent = '→ ' + label;
+    btn.onclick = (e) => { e.stopPropagation(); moveTask(id, key); closeMoveMenu(); };
+    menu.appendChild(btn);
+  });
+  const rect = event.target.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 150) + 'px';
+  document.body.appendChild(menu);
+  _moveMenuEl = menu;
+  _moveMenuId = id;
+  setTimeout(() => document.addEventListener('click', closeMoveMenu, { once: true }), 0);
+}
+async function moveTask(id, targetProject) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  try {
+    await sb.from('tasks').update({ project: targetProject }).eq('id', id);
+  } catch(e) { console.warn('moveTask sb error', e); }
+  items = items.filter(i => i.id !== id);
+  render();
+  saveAll();
+  const label = PROJECTS[targetProject]?.label || targetProject;
+  showToast('Przeniesiono do ' + label);
+}
+
 function deleteItem(id) {
   const item = items.find(i => i.id === id);
   pushHistory();
@@ -1729,8 +2331,8 @@ function toggleCheck(id) {
       delete item._prevSec; delete item._prevQuad; delete item.completedAt;
     }
     logAction('↺', `Przywrócono: ${item.text.slice(0,55)}`);
-  } else if (item.inProgress) {
-    // w trakcie → done
+  } else {
+    // todo/w-trakcie → done
     item.inProgress  = false;
     item.checked     = true;
     item._prevSec    = item.sec;
@@ -1740,10 +2342,6 @@ function toggleCheck(id) {
     item.quad = null;
     sections.find(s => s.id === 'done').collapsed = false;
     logAction('✓', `Zrobione: ${item.text.slice(0,55)}`);
-  } else {
-    // todo → w trakcie
-    item.inProgress = true;
-    logAction('…', `W trakcie: ${item.text.slice(0,55)}`);
   }
   render(); autoSave();
 }
@@ -1970,11 +2568,12 @@ function submitNewItem() {
   const pawel = document.getElementById('new-pawel').checked;
   const cat   = document.getElementById('new-cat').value || null;
 
-  const text = date ? `${rawText} — ${date}` : rawText;
+  const text = rawText;
+  const note = date ? `📅${date}` : '';
   const id   = 'u' + Date.now();
 
   pushHistory();
-  items.push({ id, sec, quad, checked: false, inProgress: false, priority: false, pawel, cat, note: '', text });
+  items.push({ id, sec, quad, checked: false, inProgress: false, priority: false, pawel, cat, note, text });
 
   const targetSec = sections.find(s => s.id === sec);
   if (targetSec) targetSec.collapsed = false;
@@ -2149,6 +2748,132 @@ function norm(s) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 }
 
+// ── Polish spoken-date normalizer ──
+const _PL_ORDINALS = [
+  ['trzydziestego pierwszego',31],['trzydziesty pierwszy',31],
+  ['trzydziestego',30],['trzydziesty',30],
+  ['dwudziestego dziewiatego',29],['dwudziesty dziewiety',29],
+  ['dwudziestego osmego',28],['dwudziesty osmy',28],
+  ['dwudziestego siodmego',27],['dwudziesty siodmy',27],
+  ['dwudziestego szostego',26],['dwudziesty szosty',26],
+  ['dwudziestego piatego',25],['dwudziesty piaty',25],
+  ['dwudziestego czwartego',24],['dwudziesty czwarty',24],
+  ['dwudziestego trzeciego',23],['dwudziesty trzeci',23],
+  ['dwudziestego drugiego',22],['dwudziesty drugi',22],
+  ['dwudziestego pierwszego',21],['dwudziesty pierwszy',21],
+  ['dwudziestego',20],['dwudziesty',20],
+  ['dziewietnaastego',19],['dziewietnasty',19],['dziewietnastego',19],
+  ['osiemnastego',18],['osiemnasty',18],
+  ['siedemnastego',17],['siedemnasty',17],
+  ['szesnastego',16],['szesnasty',16],
+  ['pietnaastego',15],['piętnastego',15],['pietnastego',15],['piętnasty',15],
+  ['czternastego',14],['czternasty',14],
+  ['trzynastego',13],['trzynasty',13],
+  ['dwunastego',12],['dwunasty',12],
+  ['jedenastego',11],['jedenasty',11],
+  ['dziesiatego',10],['dziesiaty',10],
+  ['dziewiatego',9],['dziewiaty',9],
+  ['osmego',8],['osmy',8],
+  ['siodmego',7],['siodmy',7],
+  ['szostego',6],['szosty',6],
+  ['piatego',5],['piaty',5],
+  ['czwartego',4],['czwarty',4],
+  ['trzeciego',3],['trzeci',3],
+  ['drugiego',2],['drugi',2],
+  ['pierwszego',1],['pierwszy',1],
+];
+const _PL_MONTH_NAMES = {
+  'stycznia':'01','styczen':'01','stycznia':'01',
+  'lutego':'02','luty':'02',
+  'marca':'03','marzec':'03',
+  'kwietnia':'04','kwiecien':'04',
+  'maja':'05','maj':'05',
+  'czerwca':'06','czerwiec':'06',
+  'lipca':'07','lipiec':'07',
+  'sierpnia':'08','sierpien':'08',
+  'wrzesnia':'09','wrzesien':'09',
+  'pazdziernika':'10','pazdziernik':'10',
+  'listopada':'11','listopad':'11',
+  'grudnia':'12','grudzien':'12',
+};
+// build normalized lookup
+const _ordMap = {};
+_PL_ORDINALS.forEach(([w,n]) => { _ordMap[norm(w)] = n; });
+const _allOrdNorm = Object.keys(_ordMap).sort((a,b) => b.length - a.length);
+const _monNorm = {};
+Object.entries(_PL_MONTH_NAMES).forEach(([k,v]) => { _monNorm[norm(k)] = v; });
+const _allMonNorm = Object.keys(_monNorm).sort((a,b) => b.length - a.length);
+
+function _reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function _pad2(n) { return String(n).padStart(2,'0'); }
+
+function normalizeSpeechDates(text) {
+  // 1. Decimal comma date: "10,06" → "10.06"
+  text = text.replace(/\b(\d{1,2})[,]\s*0*(\d{1,2})\b/g, (_, d, m) => {
+    if (+m >= 1 && +m <= 12 && +d >= 1 && +d <= 31) return `${d}.${_pad2(+m)}`;
+    return _;
+  });
+
+  const t = norm(text);
+  let result = text;
+
+  // Helper: replace in original text preserving case position
+  function replaceNorm(origText, normPattern, replacement) {
+    const lower = norm(origText);
+    let idx = lower.indexOf(normPattern);
+    while (idx !== -1) {
+      // approximate position in original (NFD may differ in length)
+      result = origText.slice(0, idx) + replacement + origText.slice(idx + normPattern.length);
+      origText = result;
+      const newLower = norm(origText);
+      idx = newLower.indexOf(normPattern);
+    }
+    return origText;
+  }
+
+  // 2. Digit + month name: "10 czerwca" → "10.06"
+  const digitMonRx = new RegExp(
+    '\\b(\\d{1,2})\\s+(' + _allMonNorm.map(_reEsc).join('|') + ')\\b', 'gi'
+  );
+  result = result.replace(digitMonRx, (_, d, m) => {
+    const mm = _monNorm[norm(m)];
+    return mm ? `${d}.${mm}` : _;
+  });
+
+  // 3. Ordinal + month name: "dziesiątego czerwca" → "10.06"
+  const ordMonRx = new RegExp(
+    '\\b(' + _allOrdNorm.map(_reEsc).join('|') + ')\\s+(' + _allMonNorm.map(_reEsc).join('|') + ')\\b', 'gi'
+  );
+  result = result.replace(ordMonRx, (_, d, m) => {
+    const dd = _ordMap[norm(d)];
+    const mm = _monNorm[norm(m)];
+    return (dd && mm) ? `${_pad2(dd)}.${mm}` : _;
+  });
+
+  // 4. Ordinal + ordinal: "dziesiątego szóstego" → "10.06"
+  const ordOrdRx = new RegExp(
+    '\\b(' + _allOrdNorm.map(_reEsc).join('|') + ')\\s+(' + _allOrdNorm.map(_reEsc).join('|') + ')\\b', 'gi'
+  );
+  result = result.replace(ordOrdRx, (_, d, m) => {
+    const dd = _ordMap[norm(d)];
+    const mm = _ordMap[norm(m)];
+    if (dd && mm && mm <= 12) return `${_pad2(dd)}.${_pad2(mm)}`;
+    return _;
+  });
+
+  // 5. Digit + ordinal month: "10 szóstego" → "10.06"
+  const digitOrdRx = new RegExp(
+    '\\b(\\d{1,2})\\s+(' + _allOrdNorm.map(_reEsc).join('|') + ')\\b', 'gi'
+  );
+  result = result.replace(digitOrdRx, (_, d, m) => {
+    const mm = _ordMap[norm(m)];
+    if (mm && mm <= 12) return `${d}.${_pad2(mm)}`;
+    return _;
+  });
+
+  return result;
+}
+
 function findItemByText(query) {
   const q = norm(query);
   return items.filter(i => !i.checked).find(i => norm(i.text).includes(q)) || null;
@@ -2171,6 +2896,7 @@ function getVoiceItems() {
 }
 
 function voiceCommand(text) {
+  text = normalizeSpeechDates(text);
   const t = norm(text);
 
   if (/^cofnij/.test(t))  { undo(); return; }
@@ -2203,6 +2929,7 @@ function voiceCommand(text) {
 
 function addVoiceItem(text) {
   if (!text) return;
+  text = normalizeSpeechDates(text);
   const id = 'vc' + Date.now();
   pushHistory();
   items.push({ id, sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text });
@@ -2491,6 +3218,151 @@ if (activeProject === 'general') {
 render();
 onSecChange();
 setTimeout(syncFromSupabase, 200);
+
+// ── PWA Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ── Bottom Sheet (mobile) ──
+function showItemSheet(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'sheet-overlay';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">${escHtml(item.text.slice(0,45))}${item.text.length>45?'…':''}</div>
+    <div class="sheet-actions"></div>
+  `;
+
+  const acts = sheet.querySelector('.sheet-actions');
+
+  const mkBtn = (icon, label, cls, fn) => {
+    const b = document.createElement('button');
+    b.className = 'sheet-btn' + (cls ? ' ' + cls : '');
+    b.innerHTML = `<span class="sh-icon">${icon}</span>${label}`;
+    b.onclick = () => { overlay.remove(); fn(); };
+    acts.appendChild(b);
+  };
+
+  mkBtn(item.checked ? '↩' : '✓',
+        item.checked ? 'Cofnij ukończenie' : 'Oznacz jako zrobione',
+        item.checked ? '' : '', () => toggleCheck(id));
+
+  mkBtn(item.priority ? '☆' : '★',
+        item.priority ? 'Usuń priorytet' : 'Ustaw priorytet',
+        item.priority ? '' : 'sh-active', () => togglePriority(id));
+
+  mkBtn(item.inProgress ? '⏸' : '⏳',
+        item.inProgress ? 'Usuń „W trakcie"' : 'Oznacz jako W trakcie',
+        '', () => toggleInProgress(id));
+
+  mkBtn('📅', 'Ustaw datę', '', () => {
+    // fake event dla pozycjonowania menu
+    const fakeEv = { target: document.body, stopPropagation: () => {} };
+    showDateMenu(id, fakeEv);
+  });
+
+  mkBtn('📝', parseItemNote(item).notePart.replace(/📅[\d.]+\s*/,'').trim() ? 'Edytuj notatkę' : 'Dodaj notatkę',
+        '', () => { openNote(id); });
+
+  mkBtn('✏', 'Edytuj zadanie', '', () => openEdit(id));
+  mkBtn('✕', 'Usuń', 'sh-danger', () => deleteItem(id));
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+}
+
+function openNote(id) {
+  if (!openNotes.has(id)) openNotes.add(id);
+  render();
+  setTimeout(() => {
+    const ta = document.querySelector(`[data-noteid="${id}"]`);
+    if (ta) { ta.focus(); ta.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  }, 100);
+}
+
+// ── Mobile Bottom Nav ──
+function initMobileNav() {
+  const nav = document.createElement('nav');
+  nav.className = 'mobile-nav';
+  nav.id = 'mobile-nav';
+
+  const tabs = [
+    { key: 'general',   icon: '📋', label: 'Wszystkie' },
+    { key: 'prywatne',  icon: '🔴', label: 'Prywatne'  },
+    { key: 'dp',        icon: '🎬', label: 'DOP'        },
+    { key: 'vns',       icon: '📱', label: 'VNS'        },
+    { key: 'projekty',  icon: '📂', label: 'Projekty'   },
+  ];
+
+  tabs.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'mnav-btn' + (activeProject === t.key ? ' active' : '');
+    b.id = 'mnav-' + t.key;
+    b.innerHTML = `<span class="mn-icon">${t.icon}</span>${t.label}`;
+    b.onclick = () => {
+      document.querySelectorAll('.mnav-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      switchProject(t.key);
+    };
+    nav.appendChild(b);
+  });
+
+  // "Więcej" button → bottom sheet z pozostałymi zakładkami
+  const more = document.createElement('button');
+  more.className = 'mnav-btn';
+  more.innerHTML = `<span class="mn-icon">⋯</span>Więcej`;
+  more.onclick = () => showMoreNav();
+  nav.appendChild(more);
+
+  document.body.appendChild(nav);
+}
+
+function showMoreNav() {
+  const overlay = document.createElement('div');
+  overlay.className = 'sheet-overlay';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-handle"></div><div class="sheet-title">Więcej widoków</div><div class="sheet-actions"></div>`;
+  const acts = sheet.querySelector('.sheet-actions');
+
+  [
+    { key: 'vibecoding', icon: '💻', label: 'Vibe Coding' },
+    { key: 'telegram',   icon: '📲', label: 'Telegram'    },
+    { key: 'spotkania',  icon: '🤝', label: 'Spotkania'   },
+  ].forEach(({ key, icon, label }) => {
+    const b = document.createElement('button');
+    b.className = 'sheet-btn';
+    b.innerHTML = `<span class="sh-icon">${icon}</span>${label}`;
+    b.onclick = () => { overlay.remove(); switchProject(key); };
+    acts.appendChild(b);
+  });
+
+  // Eksport / Import
+  const expBtn = document.createElement('button');
+  expBtn.className = 'sheet-btn';
+  expBtn.innerHTML = `<span class="sh-icon">⬇</span>Eksportuj JSON`;
+  expBtn.onclick = () => { overlay.remove(); exportJSON(); };
+  acts.appendChild(expBtn);
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+}
+
+if (window.innerWidth <= 640) initMobileNav();
+window.addEventListener('resize', () => {
+  const nav = document.getElementById('mobile-nav');
+  if (window.innerWidth <= 640 && !nav) initMobileNav();
+});
 </script>
 </body>
 </html>
