@@ -379,6 +379,15 @@
   .st-badge-inline { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; vertical-align: middle; }
   @media (max-width: 640px) { .item-detail { padding-left: 36px; } }
 
+  /* TREE CHILDREN */
+  .item-children { width: 100%; display: flex; flex-direction: column; gap: 3px; padding: 6px 0 2px 20px; border-left: 2px solid var(--border); margin-left: 14px; }
+  .item.is-child { background: rgba(255,255,255,.015); border-color: rgba(48,54,61,.7); }
+  .item.is-child .num { display: none; }
+  .item.is-child .drag-handle { display: none; }
+  .btn-promote { background: rgba(139,148,158,.08); border: 1px solid var(--border); color: var(--muted); border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+  .btn-promote:hover { background: rgba(57,208,200,.15); border-color: var(--cyan); color: var(--cyan); }
+  .overdue-parent-ctx { font-size: 10px; color: var(--muted); padding: 4px 8px; background: var(--surface2); border-radius: 6px; margin-bottom: 3px; }
+
   /* CYKLICZNE VIEW */
   .cyc-wrap { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 100px; }
   .cyc-add-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 4px; }
@@ -1015,6 +1024,7 @@ async function syncFromSupabase() {
       const remote = await sbFetch(activeProject);
       if (remote && remote.length) items = remote;
     } else return;
+    migrateEmbeddedSubtasks();
     render();
     const sbEl = document.getElementById('sb-status');
     if (sbEl) sbEl.innerHTML = '<span style="color:var(--green)">☁ online</span>';
@@ -1332,8 +1342,17 @@ function getItemDateStr(item) {
   return m ? m[1] : null;
 }
 
+const PM = '\n---parent---\n'; // parent marker
+
 function parseItemNote(item) {
-  const raw = item.note || '';
+  // Strip parent marker before processing subtasks
+  let raw = item.note || '';
+  const pidIdx = raw.indexOf(PM);
+  if (pidIdx !== -1) {
+    const afterPid = raw.slice(pidIdx + PM.length);
+    const nextM = afterPid.indexOf('\n---');
+    raw = raw.slice(0, pidIdx) + (nextM === -1 ? '' : afterPid.slice(nextM));
+  }
   const MARKER = '\n---subtasks---\n';
   const idx = raw.indexOf(MARKER);
   if (idx === -1) return { notePart: raw, subtasks: [] };
@@ -1346,6 +1365,37 @@ function buildItemNote(notePart, subtasks) {
   const clean = (notePart || '').replace(/\n---subtasks---\n[\s\S]*$/, '').trimEnd();
   if (!subtasks || !subtasks.length) return clean;
   return clean + '\n---subtasks---\n' + JSON.stringify(subtasks);
+}
+
+// ── Tree helpers ──
+function parseParent(item) {
+  const raw = item.note || '';
+  const idx = raw.indexOf(PM);
+  if (idx === -1) return null;
+  const rest = raw.slice(idx + PM.length);
+  return rest.split('\n---')[0].trim() || null;
+}
+
+function setParentInNote(note, parentId) {
+  const raw = note || '';
+  const idx = raw.indexOf(PM);
+  let base;
+  if (idx !== -1) {
+    const afterM = raw.slice(idx + PM.length);
+    const nextM = afterM.indexOf('\n---');
+    base = raw.slice(0, idx) + (nextM === -1 ? '' : afterM.slice(nextM));
+  } else {
+    base = raw;
+  }
+  return parentId ? base + PM + parentId : base;
+}
+
+function getRootItems() {
+  return items.filter(i => !parseParent(i));
+}
+
+function getChildren(parentId) {
+  return items.filter(i => parseParent(i) === parentId);
 }
 
 // ════════════════════════════════════════
@@ -1919,22 +1969,51 @@ function render() {
   wrap.innerHTML = '';
 
   // ── Overdue block ──────────────────────────────────────────────────────────
-  const overdue = items.filter(i => !i.checked && (() => { const dt = getItemDate(i); return dt && dt < TODAY; })());
+  const isOverdueFn = i => !i.checked && (() => { const dt = getItemDate(i); return dt && dt < TODAY; })();
+  const overdueAll = items.filter(isOverdueFn);
+  // Separate roots and children
+  const overdueRoots    = overdueAll.filter(i => !parseParent(i));
+  const overdueChildren = overdueAll.filter(i => parseParent(i));
+  // For overdue children: de-dup parents
+  const shownParentIds = new Set(overdueRoots.map(i => i.id));
+  const childGroups = []; // {parent, children[]}
+  overdueChildren.forEach(ch => {
+    const pid = parseParent(ch);
+    if (!pid) return;
+    let g = childGroups.find(g => g.parent?.id === pid);
+    if (!g) {
+      const par = items.find(i => i.id === pid);
+      if (!par || shownParentIds.has(pid)) return; // parent itself is overdue - skip
+      g = { parent: par, children: [] };
+      childGroups.push(g);
+    }
+    g.children.push(ch);
+  });
+  const overdue = overdueRoots; // roots count for display
+  const totalOverdue = overdueRoots.length + overdueChildren.length;
   const makeOverdueBlock = () => {
     const od = document.createElement('div');
     od.className = 'section overdue-block';
-    const hasItems = overdue.length > 0;
+    const hasItems = totalOverdue > 0;
     od.style.cssText = hasItems
       ? 'border-color:rgba(248,81,73,.5);background:rgba(248,81,73,.06)'
       : 'border-color:rgba(248,81,73,.2);opacity:.5';
     od.innerHTML = `<div class="sec-header" style="color:var(--red)">
       <span class="sec-chevron" style="${hasItems?'':'transform:rotate(-90deg)'}">▾</span>
       <span class="sec-title">${hasItems ? '🔴' : '✅'} Przeterminowane</span>
-      ${hasItems ? `<span class="sec-count">${overdue.length}</span>` : ''}
+      ${hasItems ? `<span class="sec-count">${totalOverdue}</span>` : ''}
     </div><div class="sec-body" style="${hasItems?'':'display:none'}" id="od-body"></div>`;
     if (hasItems) {
       const body = od.querySelector('#od-body');
-      overdue.forEach((item, idx) => body.appendChild(makeItem(item, idx + 1)));
+      overdueRoots.forEach((item, idx) => body.appendChild(makeItem(item, idx + 1)));
+      // Show overdue children with parent context
+      childGroups.forEach(({ parent, children }) => {
+        const ctx = document.createElement('div');
+        ctx.className = 'overdue-parent-ctx';
+        ctx.textContent = '↳ ' + parent.text.slice(0, 60);
+        body.appendChild(ctx);
+        children.forEach((ch, idx) => body.appendChild(makeItem(ch, idx + 1, true)));
+      });
     }
     od.querySelector('.sec-header').addEventListener('click', () => {
       const chev = od.querySelector('.sec-chevron');
@@ -1945,7 +2024,7 @@ function render() {
     });
     return od;
   };
-  if (overdue.length) wrap.insertBefore(makeOverdueBlock(), wrap.firstChild);
+  if (totalOverdue) wrap.insertBefore(makeOverdueBlock(), wrap.firstChild);
   else wrap._overdueBlock = makeOverdueBlock(); // append at end after sections render
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -1960,7 +2039,7 @@ function render() {
   }
 
   sections.forEach(sec => {
-    const secItems = items.filter(i => i.sec === sec.id);
+    const secItems = items.filter(i => i.sec === sec.id && !parseParent(i));
     const div = document.createElement('div');
     div.className = 'section' + (sec.collapsed ? ' collapsed' : '');
     div.id = 'sec-' + sec.id;
@@ -2006,7 +2085,7 @@ function renderMatrix(body) {
   grid.className = 'matrix';
 
   QUADS.forEach(q => {
-    const raw = items.filter(i => i.sec === 'todo' && i.quad === q.id && !i.checked);
+    const raw = items.filter(i => i.sec === 'todo' && i.quad === q.id && !i.checked && !parseParent(i));
     const filtered = applySearch(applyFilter(raw)).sort((a, b) => {
       if (a.priority !== b.priority) return a.priority ? -1 : 1;
       const da = getItemDate(a), db = getItemDate(b);
@@ -2148,7 +2227,7 @@ function setupDropZone(el, secId, quadId, highlightEl) {
 }
 
 // ── Make item element ──
-function makeItem(item, num) {
+function makeItem(item, num, isChildView = false) {
   const el = document.createElement('div');
   el.dataset.id = item.id;
 
@@ -2201,6 +2280,10 @@ function makeItem(item, num) {
   const hasNote = !!(noteDisplay);
   const hasSubtasks = subtasks.length > 0;
   const doneSubtasks = subtasks.filter(s => s.checked).length;
+  const children = getChildren(item.id);
+  const hasChildren = children.length > 0;
+  const doneChildren = children.filter(c => c.checked).length;
+  const isChild = isChildView || !!parseParent(item);
 
   const catLabels = { prywatne:'Prywatne', dp:'DOP', vns:'VNS', telegram:'Telegram', szpilki:'Szpilki', vibecoding:'Vibe' };
   el.className = 'item'
@@ -2208,7 +2291,8 @@ function makeItem(item, num) {
     + (item.inProgress ? ' is-inprogress' : '')
     + (item.priority   ? ' is-priority'   : '')
     + (selectedIds.has(item.id) ? ' selected' : '')
-    + (noteOpen        ? ' is-expanded'   : '');
+    + (noteOpen        ? ' is-expanded'   : '')
+    + (isChild         ? ' is-child'      : '');
   el.draggable = true;
 
   const cbCls = item.checked ? 'checked' : (item.inProgress ? 'inprogress' : '');
@@ -2222,12 +2306,13 @@ function makeItem(item, num) {
             title="${item.priority?'Usuń priorytet':'Ustaw priorytet'}">★</button>
     <div class="cb ${cbCls}" data-cbid="${item.id}" title="Kliknij: ☐→✓"></div>
     <div class="item-text" ondblclick="event.stopPropagation();openEdit('${item.id}')">
-      ${escHtml(item.text)}${stBadge}${(() => { const ds = getItemDateStr(item); if (!ds) return ''; const dt = parseDate(ds); const diffDays = dt ? Math.round((dt - TODAY)/86400000) : null; let cls = 'date-tag'; if (dt && dt < TODAY) cls += ' overdue'; else if (dt && diffDays === 0) cls += ' today'; else if (dt && diffDays <= 2) cls += ' today'; else if (dt && diffDays <= 7) cls += ' soon'; else if (dt) cls += ' future'; const label = diffDays===0?' dziś':diffDays===1?' jutro':diffDays>0?` za ${diffDays}d`:diffDays!==null?` ${Math.abs(diffDays)}d temu`:''; return ` <span class="${cls}" style="cursor:pointer" onclick="event.stopPropagation();showDateMenu('${item.id}',event)" title="Zmień datę">📅 ${ds}${label}</span>`; })()}
+      ${escHtml(item.text)}${stBadge}${hasChildren ? `<span class="st-badge-inline" title="Podzadania: ${doneChildren}/${children.length}">▸ ${doneChildren}/${children.length}</span>` : ''}${(() => { const ds = getItemDateStr(item); if (!ds) return ''; const dt = parseDate(ds); const diffDays = dt ? Math.round((dt - TODAY)/86400000) : null; let cls = 'date-tag'; if (dt && dt < TODAY) cls += ' overdue'; else if (dt && diffDays === 0) cls += ' today'; else if (dt && diffDays <= 2) cls += ' today'; else if (dt && diffDays <= 7) cls += ' soon'; else if (dt) cls += ' future'; const label = diffDays===0?' dziś':diffDays===1?' jutro':diffDays>0?` za ${diffDays}d`:diffDays!==null?` ${Math.abs(diffDays)}d temu`:''; return ` <span class="${cls}" style="cursor:pointer" onclick="event.stopPropagation();showDateMenu('${item.id}',event)" title="Zmień datę">📅 ${ds}${label}</span>`; })()}
       ${(item.cat || activeProject !== 'general') ? `<span class="badge-cat cat-${item.cat||activeProject}" onclick="event.stopPropagation();showMoveMenu('${item.id}',event)" title="Zmień projekt">${catLabels[item.cat||activeProject]||item.cat||activeProject}</span>` : ''}
     </div>
     <button class="btn-progress-item ${item.inProgress?'is-active':''}" onclick="event.stopPropagation();toggleInProgress('${item.id}')" title="${item.inProgress?'Usuń W trakcie':'Oznacz jako W trakcie'}">⏳</button>
-    <button class="btn-note-item ${(hasNote||hasSubtasks)?'has-note':''}" onclick="event.stopPropagation();toggleNote('${item.id}')" title="${noteOpen?'Schowaj':'Rozwiń (notatka/podzadania)'}">📝</button>
+    <button class="btn-note-item ${(hasNote||hasSubtasks||hasChildren)?'has-note':''}" onclick="event.stopPropagation();toggleNote('${item.id}')" title="${noteOpen?'Schowaj':'Rozwiń'}">📝</button>
     <button class="btn-date-item"   onclick="event.stopPropagation();showDateMenu('${item.id}',event)" title="Dodaj datę">📅</button>
+    ${isChild ? `<button class="btn-promote" onclick="event.stopPropagation();promoteItem('${item.id}')" title="Przenieś na główny poziom">↑ wyżej</button>` : ''}
     <button class="btn-edit-item"   onclick="event.stopPropagation();openEdit('${item.id}')"   title="Edytuj">✏</button>
     <button class="btn-delete-item" onclick="event.stopPropagation();deleteItem('${item.id}')" title="Usuń">✕</button>
     <button class="btn-more-item"   onclick="event.stopPropagation();showItemSheet('${item.id}')" title="Więcej">⋯</button>
@@ -2273,17 +2358,23 @@ function makeItem(item, num) {
       detail.appendChild(ta);
     }
 
-    // Subtasks section
-    const stSection = document.createElement('div');
-    stSection.className = 'subtask-section';
-
-    if (hasSubtasks) {
+    // ── Children (real task items) ──
+    if (hasChildren) {
       const hdr = document.createElement('div');
       hdr.className = 'subtask-header';
-      const pct = subtasks.length ? Math.round(doneSubtasks / subtasks.length * 100) : 0;
-      hdr.innerHTML = `<span>Podzadania</span><span class="subtask-count">${doneSubtasks}/${subtasks.length}</span><div class="subtask-progress-bar"><div class="subtask-progress-fill" style="width:${pct}%"></div></div>`;
-      stSection.appendChild(hdr);
+      const pct = children.length ? Math.round(doneChildren / children.length * 100) : 0;
+      hdr.innerHTML = `<span>Podzadania</span><span class="subtask-count">${doneChildren}/${children.length}</span><div class="subtask-progress-bar"><div class="subtask-progress-fill" style="width:${pct}%"></div></div>`;
+      detail.appendChild(hdr);
+      const childWrap = document.createElement('div');
+      childWrap.className = 'item-children';
+      children.forEach((ch, idx) => childWrap.appendChild(makeItem(ch, idx + 1, true)));
+      detail.appendChild(childWrap);
+    }
 
+    // ── Legacy embedded subtasks (will be migrated away) ──
+    if (hasSubtasks) {
+      const stSection = document.createElement('div');
+      stSection.className = 'subtask-section';
       subtasks.forEach((st, idx) => {
         const row = document.createElement('div');
         row.className = 'subtask-item';
@@ -2296,9 +2387,10 @@ function makeItem(item, num) {
         row.querySelector('.st-del').addEventListener('click', e => { e.stopPropagation(); deleteSubtask(item.id, idx); });
         stSection.appendChild(row);
       });
+      detail.appendChild(stSection);
     }
 
-    // Add subtask input
+    // ── Add subtask input ──
     const addRow = document.createElement('div');
     addRow.className = 'subtask-add-row';
     const addInput = document.createElement('input');
@@ -2313,16 +2405,15 @@ function makeItem(item, num) {
     });
     const addBtn = document.createElement('button');
     addBtn.className = 'subtask-add-btn';
-    addBtn.textContent = '+ Dodaj';
+    addBtn.textContent = '+ Podzadanie';
     addBtn.addEventListener('click', e => {
       e.stopPropagation();
       if (addInput.value.trim()) addSubtask(item.id, addInput.value.trim());
     });
     addRow.appendChild(addInput);
     addRow.appendChild(addBtn);
-    stSection.appendChild(addRow);
+    detail.appendChild(addRow);
 
-    detail.appendChild(stSection);
     el.appendChild(detail);
   }
 
@@ -2401,15 +2492,33 @@ function toggleNote(id) {
 }
 
 function addSubtask(parentId, text) {
-  const item = items.find(i => i.id === parentId);
-  if (!item) return;
+  if (!text) return;
+  const parent = items.find(i => i.id === parentId);
+  if (!parent) return;
   pushHistory();
-  const { notePart, subtasks } = parseItemNote(item);
-  subtasks.push({ id: 'st_' + Date.now(), text, checked: false });
-  item.note = buildItemNote(notePart, subtasks);
+  const childId = 'sub_' + Date.now();
+  items.push({
+    id: childId,
+    sec: parent.sec || 'todo', quad: parent.quad || null,
+    checked: false, inProgress: false, priority: false, pawel: false,
+    cat: parent.cat || null,
+    note: setParentInNote('', parentId),
+    text,
+  });
+  openNotes.add(parentId);
   render(); autoSave();
 }
 
+function promoteItem(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  pushHistory();
+  item.note = setParentInNote(item.note, null);
+  render(); autoSave();
+  showToast('↑ Przeniesiono na główny poziom');
+}
+
+// Legacy: toggleSubtask/deleteSubtask still work for any remaining embedded subtasks
 function toggleSubtask(parentId, idx) {
   const item = items.find(i => i.id === parentId);
   if (!item) return;
@@ -2434,17 +2543,10 @@ function dropAsSubtask(draggedId, targetId) {
   const target  = items.find(i => i.id === targetId);
   if (!dragged || !target) return;
   pushHistory();
-  // collect dragged task's own subtasks to bring along
-  const { notePart: dNote, subtasks: dSubs } = parseItemNote(dragged);
-  const { notePart: tNote, subtasks: tSubs } = parseItemNote(target);
-  // main dragged task becomes first new subtask
-  tSubs.push({ id: 'st_' + Date.now(), text: dragged.text, checked: dragged.checked || false });
-  // its subtasks follow
-  dSubs.forEach((s, i) => tSubs.push({ id: 'st_' + (Date.now() + i + 1), text: s.text, checked: s.checked }));
-  target.note = buildItemNote(tNote, tSubs);
-  // remove dragged from main list
-  items = items.filter(i => i.id !== draggedId);
-  // open target so user sees the result
+  // Set parent on dragged item (keep all its children too)
+  dragged.note = setParentInNote(dragged.note, targetId);
+  // Also move any children of dragged to be children of target
+  getChildren(draggedId).forEach(ch => { ch.note = setParentInNote(ch.note, targetId); });
   openNotes.add(targetId);
   render(); autoSave();
   showToast('↳ Podzadanie dodane do: ' + target.text.slice(0, 40));
@@ -2560,7 +2662,9 @@ async function moveTask(id, targetProject) {
 function deleteItem(id) {
   const item = items.find(i => i.id === id);
   pushHistory();
-  openNotes.delete(id);
+  openNotes.delete(id); openNoteTexts.delete(id);
+  // Promote children before deleting parent
+  getChildren(id).forEach(ch => { ch.note = setParentInNote(ch.note, null); });
   items = items.filter(i => i.id !== id);
   render(); autoSave();
   sbDelete(id);
@@ -2887,6 +2991,42 @@ function loadState() {
   loadUndoStack();
   loadLog();
   renderLog();
+  migrateEmbeddedSubtasks();
+}
+
+function migrateEmbeddedSubtasks() {
+  const MK = '_sub_mig_v2_' + activeProject;
+  if (localStorage.getItem(MK)) return;
+  const toAdd = [];
+  items.forEach(item => {
+    const STMARKER = '\n---subtasks---\n';
+    const idx = (item.note || '').indexOf(STMARKER);
+    if (idx === -1) return;
+    const notePart = item.note.slice(0, idx);
+    const afterST  = item.note.slice(idx + STMARKER.length);
+    // split off recurrence if present
+    const recM = afterST.indexOf('\n---recurrence---\n');
+    const subsJson  = recM === -1 ? afterST : afterST.slice(0, recM);
+    const recSuffix = recM === -1 ? '' : afterST.slice(recM);
+    let subs = [];
+    try { subs = JSON.parse(subsJson); } catch(e) { return; }
+    subs.forEach((st, i) => {
+      toAdd.push({
+        id: (st.id && !st.id.startsWith('st_')) ? st.id : ('mig_' + item.id + '_' + i + '_' + Date.now()),
+        sec: item.sec || 'todo', quad: item.quad || null,
+        checked: st.checked || false, inProgress: false, priority: false, pawel: false,
+        cat: item.cat || null,
+        note: setParentInNote('', item.id),
+        text: st.text,
+      });
+    });
+    item.note = notePart + recSuffix;
+  });
+  if (toAdd.length) {
+    items.push(...toAdd);
+    autoSave();
+  }
+  localStorage.setItem(MK, '1');
 }
 
 // ════════════════════════════════════════
