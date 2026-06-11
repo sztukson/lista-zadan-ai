@@ -1195,6 +1195,7 @@ let activeFilter = 'all';
 let activeSearch = '';
 let weekViewOpen = false;
 const openNotes = new Set();
+const openNoteTexts = new Set();
 
 // ════════════════════════════════════════
 //  UNDO HISTORY (trwałe — przeżywa F5)
@@ -2232,30 +2233,45 @@ function makeItem(item, num) {
     <button class="btn-more-item"   onclick="event.stopPropagation();showItemSheet('${item.id}')" title="Więcej">⋯</button>
   `;
 
-  // Expand panel (note + subtasks) — visible when noteOpen
+  // Expand panel (subtasks + optional note) — visible when noteOpen
   if (noteOpen) {
     const detail = document.createElement('div');
     detail.className = 'item-detail';
 
-    // Note textarea
-    const ta = document.createElement('textarea');
-    ta.className = 'note-area';
-    ta.placeholder = 'Notatka do zadania…';
-    ta.value = noteDisplay;
-    ta.rows = 2;
-    ta.setAttribute('data-noteid', item.id);
-    ta.addEventListener('input', e => {
-      const { subtasks: st } = parseItemNote(item);
-      const datePrefix = notePart.match(/^📅\s*[\d.]+/) ? notePart.match(/^📅\s*[\d.]+/)[0] : null;
-      const newNote = datePrefix ? (datePrefix + (e.target.value ? '\n' + e.target.value : '')) : e.target.value;
-      item.note = buildItemNote(newNote, st);
-      autoSave();
+    // Note textarea — only when explicitly opened
+    const noteTextOpen = openNoteTexts.has(item.id);
+    const noteToggleBtn = document.createElement('button');
+    noteToggleBtn.className = 'subtask-add-btn';
+    noteToggleBtn.style.cssText = 'align-self:flex-start;margin-bottom:4px;font-size:11px';
+    noteToggleBtn.textContent = noteTextOpen ? '✕ Schowaj notatkę' : (hasNote ? '📝 Edytuj notatkę' : '📝 Dodaj notatkę');
+    noteToggleBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (openNoteTexts.has(item.id)) openNoteTexts.delete(item.id);
+      else openNoteTexts.add(item.id);
+      render();
     });
-    ta.addEventListener('click', e => e.stopPropagation());
-    ta.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { openNotes.delete(item.id); render(); }
-    });
-    detail.appendChild(ta);
+    detail.appendChild(noteToggleBtn);
+
+    if (noteTextOpen) {
+      const ta = document.createElement('textarea');
+      ta.className = 'note-area';
+      ta.placeholder = 'Notatka do zadania…';
+      ta.value = noteDisplay;
+      ta.rows = 2;
+      ta.setAttribute('data-noteid', item.id);
+      ta.addEventListener('input', e => {
+        const { subtasks: st } = parseItemNote(item);
+        const datePrefix = notePart.match(/^📅\s*[\d.]+/) ? notePart.match(/^📅\s*[\d.]+/)[0] : null;
+        const newNote = datePrefix ? (datePrefix + (e.target.value ? '\n' + e.target.value : '')) : e.target.value;
+        item.note = buildItemNote(newNote, st);
+        autoSave();
+      });
+      ta.addEventListener('click', e => e.stopPropagation());
+      ta.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { openNoteTexts.delete(item.id); openNotes.delete(item.id); render(); }
+      });
+      detail.appendChild(ta);
+    }
 
     // Subtasks section
     const stSection = document.createElement('div');
@@ -2375,8 +2391,12 @@ function makeItem(item, num) {
 //  NOTE
 // ════════════════════════════════════════
 function toggleNote(id) {
-  if (openNotes.has(id)) openNotes.delete(id);
-  else openNotes.add(id);
+  if (openNotes.has(id)) {
+    openNotes.delete(id);
+    openNoteTexts.delete(id);
+  } else {
+    openNotes.add(id);
+  }
   render();
 }
 
