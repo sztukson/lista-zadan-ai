@@ -402,6 +402,14 @@
   .cyc-del-btn { background: none; border: none; color: var(--border); cursor: pointer; font-size: 14px; padding: 4px; flex-shrink: 0; }
   .cyc-del-btn:hover { color: var(--red); }
   .cyc-section-hdr { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 2px 4px; }
+  .cyc-extra { width: 100%; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 2px; }
+  .cyc-extra-label { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .cyc-day-row { display: flex; gap: 5px; flex-wrap: wrap; }
+  .cyc-day-btn { width: 34px; height: 30px; border-radius: 6px; border: 1.5px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; font-family: inherit; }
+  .cyc-day-btn.active { background: rgba(57,208,200,.18); border-color: var(--cyan); color: var(--cyan); }
+  .cyc-mday-grid { display: flex; flex-wrap: wrap; gap: 4px; max-width: 340px; }
+  .cyc-mday-btn { width: 28px; height: 26px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; font-family: 'JetBrains Mono',monospace; }
+  .cyc-mday-btn.active { background: rgba(57,208,200,.18); border-color: var(--cyan); color: var(--cyan); }
 
   /* EXPORT/IMPORT */
   .search-row { display: none; }
@@ -1632,47 +1640,118 @@ function deleteMeeting(id) {
 //  CYKLICZNE (RECURRING TASKS)
 // ════════════════════════════════════════
 const RHYTHMS = {
-  weekly:     { label: 'co tydzień',   days: 7   },
-  monthly:    { label: 'co miesiąc',   days: 30  },
-  quarterly:  { label: 'co 3 miesiące',days: 91  },
-  halfyear:   { label: 'co pół roku',  days: 182 },
-  yearly:     { label: 'co rok',       days: 365 },
+  daily:      { label: 'co dzień',          days: 1   },
+  weekly:     { label: 'co tydzień',         days: 7   },
+  biweekly:   { label: 'co 2 tygodnie',      days: 14  },
+  monthly:    { label: 'co miesiąc',         days: 30  },
+  quarterly:  { label: 'co 3 miesiące',      days: 91  },
+  halfyear:   { label: 'co pół roku',        days: 182 },
+  yearly:     { label: 'co rok',             days: 365 },
+  weekdays:   { label: 'wybrane dni tyg.',   days: null },
+  monthdays:  { label: 'wybrane dni mies.',  days: null },
 };
+const WEEKDAY_ORDER = [1,2,3,4,5,6,0];
+const WEEKDAY_ABBR  = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+let _cycFWD = new Set();
+let _cycFMD = new Set();
 
 function parseRecurrence(item) {
   const raw = item.note || '';
   const MARKER = '\n---recurrence---\n';
   const idx = raw.indexOf(MARKER);
-  if (idx === -1) return { userNote: raw, rhythm: 'yearly', last_done: null };
+  const defaults = { userNote: raw, rhythm: 'yearly', last_done: null, days_of_week: [], days_of_month: [] };
+  if (idx === -1) return defaults;
   const userNote = raw.slice(0, idx);
-  try { return { userNote, ...JSON.parse(raw.slice(idx + MARKER.length)) }; }
-  catch(e) { return { userNote: raw, rhythm: 'yearly', last_done: null }; }
+  try {
+    const data = JSON.parse(raw.slice(idx + MARKER.length));
+    return { ...defaults, userNote, ...data };
+  } catch(e) { return defaults; }
 }
 
-function buildRecurrence(userNote, rhythm, last_done) {
+function buildRecurrence(userNote, rhythm, last_done, extra = {}) {
   const clean = (userNote || '').trimEnd();
-  return clean + '\n---recurrence---\n' + JSON.stringify({ rhythm, last_done });
+  return clean + '\n---recurrence---\n' + JSON.stringify({ rhythm, last_done, ...extra });
 }
 
-function computeNextDue(last_done, rhythm) {
-  if (!last_done) return null;
+function computeNextDue(last_done, rhythm, extra = {}) {
+  if (rhythm === 'weekdays') {
+    const days = (extra.days_of_week || []).map(Number);
+    if (!days.length) return null;
+    const d = last_done ? new Date(new Date(last_done).getTime() + 86400000) : new Date();
+    d.setHours(0,0,0,0);
+    for (let i = 0; i < 14; i++) {
+      if (days.includes(d.getDay())) return new Date(d);
+      d.setDate(d.getDate() + 1);
+    }
+    return null;
+  }
+  if (rhythm === 'monthdays') {
+    const mdays = (extra.days_of_month || []).map(Number).sort((a,b) => a-b);
+    if (!mdays.length) return null;
+    const d = last_done ? new Date(new Date(last_done).getTime() + 86400000) : new Date();
+    d.setHours(0,0,0,0);
+    for (let i = 0; i < 62; i++) {
+      if (mdays.includes(d.getDate())) return new Date(d);
+      d.setDate(d.getDate() + 1);
+    }
+    return null;
+  }
   const r = RHYTHMS[rhythm];
-  if (!r) return null;
+  if (!r || !r.days) return null;
+  if (!last_done) return null;
   const d = new Date(last_done);
   d.setDate(d.getDate() + r.days);
   return d;
 }
 
+function cycRhythmLabel(rhythm, days_of_week, days_of_month) {
+  if (rhythm === 'weekdays') {
+    if (!days_of_week?.length) return 'wybrane dni';
+    return days_of_week.map(d => WEEKDAY_ABBR[d]).join('+');
+  }
+  if (rhythm === 'monthdays') {
+    if (!days_of_month?.length) return 'wybrane dni';
+    return days_of_month.map(d => d + '.').join(' ');
+  }
+  return RHYTHMS[rhythm]?.label || rhythm;
+}
+
 function cycStatus(item) {
-  const { rhythm, last_done } = parseRecurrence(item);
-  const nextDue = computeNextDue(last_done, rhythm);
+  const { rhythm, last_done, days_of_week, days_of_month } = parseRecurrence(item);
+  const nextDue = computeNextDue(last_done, rhythm, { days_of_week, days_of_month });
   if (!nextDue) return { cls: 'cyc-ok', label: 'Nigdy nie zrobione', diff: null };
   const today = new Date(); today.setHours(0,0,0,0);
   const diff = Math.round((nextDue - today) / 86400000);
-  if (diff < 0)  return { cls: 'cyc-overdue', label: `${Math.abs(diff)}d zaległe`,  diff };
-  if (diff === 0) return { cls: 'cyc-soon',    label: 'Dziś!',                      diff };
-  if (diff <= 14) return { cls: 'cyc-soon',    label: `za ${diff}d`,                diff };
-  return              { cls: 'cyc-ok',     label: `za ${diff}d`,                diff };
+  if (diff < 0)  return { cls: 'cyc-overdue', label: `${Math.abs(diff)}d zaległe`, diff };
+  if (diff === 0) return { cls: 'cyc-soon',   label: 'Dziś!',                      diff };
+  if (diff <= 14) return { cls: 'cyc-soon',   label: `za ${diff}d`,                diff };
+  return               { cls: 'cyc-ok',      label: `za ${diff}d`,                diff };
+}
+
+function toggleCycWeekday(d) {
+  if (_cycFWD.has(d)) _cycFWD.delete(d); else _cycFWD.add(d);
+  document.querySelectorAll('.cyc-day-btn').forEach(b => b.classList.toggle('active', _cycFWD.has(+b.dataset.d)));
+}
+function toggleCycMonthday(d) {
+  if (_cycFMD.has(d)) _cycFMD.delete(d); else _cycFMD.add(d);
+  document.querySelectorAll('.cyc-mday-btn').forEach(b => b.classList.toggle('active', _cycFMD.has(+b.dataset.d)));
+}
+function onCycRhythmChange() {
+  const rhythm = document.getElementById('cyc-new-rhythm')?.value;
+  const extra = document.getElementById('cyc-extra');
+  if (!extra) return;
+  _cycFWD.clear(); _cycFMD.clear();
+  if (rhythm === 'weekdays') {
+    extra.innerHTML = `<div class="cyc-extra-label">Dni tygodnia</div><div class="cyc-day-row">${
+      WEEKDAY_ORDER.map(d => `<button class="cyc-day-btn" data-d="${d}" onclick="toggleCycWeekday(${d})">${WEEKDAY_ABBR[d]}</button>`).join('')
+    }</div>`;
+  } else if (rhythm === 'monthdays') {
+    extra.innerHTML = `<div class="cyc-extra-label">Dni miesiąca</div><div class="cyc-mday-grid">${
+      Array.from({length:31},(_,i)=>i+1).map(d => `<button class="cyc-mday-btn" data-d="${d}" onclick="toggleCycMonthday(${d})">${d}</button>`).join('')
+    }</div>`;
+  } else {
+    extra.innerHTML = '';
+  }
 }
 
 function renderCykliczne() {
@@ -1683,16 +1762,38 @@ function renderCykliczne() {
   container.className = 'cyc-wrap';
 
   // ── Add form ──
+  _cycFWD.clear(); _cycFMD.clear();
   const form = document.createElement('div');
   form.className = 'cyc-add-form';
   form.innerHTML = `
-    <input id="cyc-new-text" placeholder="Nazwa zadania cyklicznego…" />
-    <select id="cyc-new-rhythm">
+    <input id="cyc-new-text" placeholder="Nazwa zadania cyklicznego…" style="flex:1;min-width:180px" />
+    <select id="cyc-new-rhythm" onchange="onCycRhythmChange()">
       ${Object.entries(RHYTHMS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
     </select>
-    <input id="cyc-new-lastdone" type="date" title="Data ostatniego wykonania (opcjonalnie)" onclick="try{this.showPicker()}catch(e){}">
+    <input id="cyc-new-lastdone" type="date" title="Ostatnie wykonanie (opcjonalnie)" onclick="try{this.showPicker()}catch(e){}">
     <button class="btn-cyc-add" onclick="addCyclicTask()">+ Dodaj</button>
+    <div id="cyc-extra" class="cyc-extra" style="display:none"></div>
   `;
+  const extraEl = form.querySelector('#cyc-extra');
+  const rhythmSel = form.querySelector('#cyc-new-rhythm');
+  rhythmSel.addEventListener('change', () => {
+    const r = rhythmSel.value;
+    _cycFWD.clear(); _cycFMD.clear();
+    if (r === 'weekdays') {
+      extraEl.style.display = '';
+      extraEl.innerHTML = `<div class="cyc-extra-label">Dni tygodnia</div><div class="cyc-day-row">${
+        WEEKDAY_ORDER.map(d => `<button type="button" class="cyc-day-btn" data-d="${d}" onclick="toggleCycWeekday(${d})">${WEEKDAY_ABBR[d]}</button>`).join('')
+      }</div>`;
+    } else if (r === 'monthdays') {
+      extraEl.style.display = '';
+      extraEl.innerHTML = `<div class="cyc-extra-label">Dni miesiąca</div><div class="cyc-mday-grid">${
+        Array.from({length:31},(_,i)=>i+1).map(d => `<button type="button" class="cyc-mday-btn" data-d="${d}" onclick="toggleCycMonthday(${d})">${d}</button>`).join('')
+      }</div>`;
+    } else {
+      extraEl.style.display = 'none';
+      extraEl.innerHTML = '';
+    }
+  });
   form.querySelector('#cyc-new-text').addEventListener('keydown', e => {
     if (e.key === 'Enter') addCyclicTask();
   });
@@ -1734,10 +1835,10 @@ function renderCykliczne() {
 }
 
 function makeCycItem(item) {
-  const { rhythm, last_done, userNote } = parseRecurrence(item);
-  const rLabel = RHYTHMS[rhythm]?.label || rhythm;
+  const { rhythm, last_done, userNote, days_of_week, days_of_month } = parseRecurrence(item);
+  const rLabel = cycRhythmLabel(rhythm, days_of_week, days_of_month);
   const { cls, label } = cycStatus(item);
-  const nextDue = computeNextDue(last_done, rhythm);
+  const nextDue = computeNextDue(last_done, rhythm, { days_of_week, days_of_month });
   const nextStr = nextDue ? nextDue.toLocaleDateString('pl-PL', { day:'numeric', month:'short', year:'numeric' }) : '—';
   const lastStr = last_done ? new Date(last_done).toLocaleDateString('pl-PL', { day:'numeric', month:'short', year:'numeric' }) : 'Nigdy';
 
@@ -1764,31 +1865,38 @@ function addCyclicTask() {
   if (!text) return;
   const rhythm = document.getElementById('cyc-new-rhythm')?.value || 'yearly';
   const lastVal = document.getElementById('cyc-new-lastdone')?.value || null;
+  if (rhythm === 'weekdays' && !_cycFWD.size) { showToast('⚠ Wybierz przynajmniej jeden dzień tygodnia'); return; }
+  if (rhythm === 'monthdays' && !_cycFMD.size) { showToast('⚠ Wybierz przynajmniej jeden dzień miesiąca'); return; }
+  const extra = {};
+  if (rhythm === 'weekdays')  extra.days_of_week  = [..._cycFWD].sort((a,b) => a-b);
+  if (rhythm === 'monthdays') extra.days_of_month = [..._cycFMD].sort((a,b) => a-b);
   const newItem = {
     id: 'cyc_' + Date.now(),
     sec: 'todo', quad: null, checked: false, priority: false, pawel: false,
     text,
-    note: buildRecurrence('', rhythm, lastVal),
+    note: buildRecurrence('', rhythm, lastVal, extra),
     inProgress: false, cat: null,
   };
   items.push(newItem);
   renderCykliczne();
   autoSave();
-  document.getElementById('cyc-new-text').value = '';
-  document.getElementById('cyc-new-lastdone').value = '';
   showToast('✓ Dodano zadanie cykliczne');
 }
 
 function doneCyclicTask(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
-  const { userNote, rhythm } = parseRecurrence(item);
+  const { userNote, rhythm, days_of_week, days_of_month } = parseRecurrence(item);
   const today = new Date().toISOString().slice(0, 10);
-  item.note = buildRecurrence(userNote, rhythm, today);
+  const extra = {};
+  if (rhythm === 'weekdays')  extra.days_of_week  = days_of_week;
+  if (rhythm === 'monthdays') extra.days_of_month = days_of_month;
+  item.note = buildRecurrence(userNote, rhythm, today, extra);
   renderCykliczne();
   autoSave();
-  const r = RHYTHMS[rhythm];
-  showToast(`✓ Zrobione! Następne: za ${r ? r.days : '?'} dni`);
+  const nextDue = computeNextDue(today, rhythm, { days_of_week, days_of_month });
+  const nextStr = nextDue ? nextDue.toLocaleDateString('pl-PL', { day:'numeric', month:'short' }) : '?';
+  showToast(`✓ Zrobione! Następne: ${nextStr}`);
 }
 
 function deleteCyclicTask(id) {
