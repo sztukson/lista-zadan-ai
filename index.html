@@ -2341,8 +2341,9 @@ function makeItem(item, num, isChildView = false) {
     <button class="btn-note-item ${(hasNote||hasSubtasks||hasChildren)?'has-note':''}" onclick="event.stopPropagation();toggleNote('${item.id}')" title="${noteOpen?'Schowaj':'Rozwiń'}">📝</button>
     <button class="btn-date-item"   onclick="event.stopPropagation();showDateMenu('${item.id}',event)" title="Dodaj datę">📅</button>
     ${isChild ? `<button class="btn-promote" onclick="event.stopPropagation();promoteItem('${item.id}')" title="Przenieś na główny poziom">↑ wyżej</button>` : ''}
-    <button class="btn-edit-item"   onclick="event.stopPropagation();openEdit('${item.id}')"   title="Edytuj">✏</button>
-    <button class="btn-delete-item" onclick="event.stopPropagation();deleteItem('${item.id}')" title="Usuń">✕</button>
+    <button class="btn-edit-item"      onclick="event.stopPropagation();openEdit('${item.id}')"      title="Edytuj">✏</button>
+    <button class="btn-delete-item"   onclick="event.stopPropagation();deleteItem('${item.id}')"   title="Usuń">✕</button>
+    <button class="btn-edit-item"     onclick="event.stopPropagation();duplicateItem('${item.id}')" title="Duplikuj" style="opacity:.7">⧉</button>
     <button class="btn-more-item"   onclick="event.stopPropagation();showItemSheet('${item.id}')" title="Więcej">⋯</button>
   `;
 
@@ -2685,6 +2686,23 @@ async function moveTask(id, targetProject) {
   saveAll();
   const label = PROJECTS[targetProject]?.label || targetProject;
   showToast('Przeniesiono do ' + label);
+}
+
+function duplicateItem(id) {
+  const src = items.find(i => i.id === id);
+  if (!src) return;
+  pushHistory();
+  const newId = crypto.randomUUID();
+  const copy = { ...src, id: newId, checked: false, inProgress: false, completedAt: null, _prevSec: null, _prevQuad: null };
+  const idx = items.findIndex(i => i.id === id);
+  items.splice(idx + 1, 0, copy);
+  const row = { id: newId, project: activeProject, sec: copy.sec, quad: copy.quad,
+    text: copy.text, checked: false, in_progress: false, priority: copy.priority,
+    pawel: copy.pawel, cat: copy.cat || null, note: copy.note || '', completed_at: null, prev_sec: null, prev_quad: null };
+  sb.table('tasks').insert(row).catch(e => console.warn(e));
+  render(); autoSave();
+  logAction('⧉', `Duplikat: ${copy.text.slice(0,55)}`);
+  showToast('⧉ Zduplikowano', false);
 }
 
 function deleteItem(id) {
