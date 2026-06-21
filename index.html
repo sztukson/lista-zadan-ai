@@ -30,7 +30,8 @@
   .header p  { font-size: 12px; color: var(--muted); }
 
   .overview { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; text-align: center; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; text-align: center; cursor: pointer; transition: border-color .15s; }
+  .stat-card:hover { border-color: var(--cyan); }
   .stat-value { font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono',monospace; margin-bottom: 3px; }
   .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
 
@@ -829,6 +830,7 @@
     <button class="proj-tab" onclick="switchProject('telegram')" id="pt-telegram" style="color:var(--cyan)">📲 Telegram</button>
     <button class="proj-tab" onclick="switchProject('spotkania')" id="pt-spotkania" style="color:var(--purple)">🤝 Spotkania</button>
     <button class="proj-tab" onclick="switchProject('cykliczne')" id="pt-cykliczne" style="color:var(--green)">🔁 Cykliczne</button>
+    <button class="proj-tab" onclick="switchProject('fundacja')" id="pt-fundacja" style="color:#e8c547">🏛️ Fundacja</button>
   </div>
 
   <div class="header">
@@ -837,10 +839,10 @@
   </div>
 
   <div class="overview">
-    <div class="stat-card"><div class="stat-value" id="s-q1" style="color:var(--red)">0</div><div class="stat-label">🔴 Teraz</div></div>
-    <div class="stat-card"><div class="stat-value" id="s-q2" style="color:var(--yellow)">0</div><div class="stat-label">🟡 Zaplanuj</div></div>
-    <div class="stat-card"><div class="stat-value" id="s-done" style="color:var(--green)">0</div><div class="stat-label">✓ Zrobione</div></div>
-    <div class="stat-card"><div class="stat-value" id="s-inprogress" style="color:var(--orange)">0</div><div class="stat-label">⏳ W trakcie</div></div>
+    <div class="stat-card" onclick="scrollToStat('q1')"><div class="stat-value" id="s-q1" style="color:var(--red)">0</div><div class="stat-label">🔴 Teraz</div></div>
+    <div class="stat-card" onclick="scrollToStat('q2')"><div class="stat-value" id="s-q2" style="color:var(--yellow)">0</div><div class="stat-label">🟡 Zaplanuj</div></div>
+    <div class="stat-card" onclick="scrollToStat('done')"><div class="stat-value" id="s-done" style="color:var(--green)">0</div><div class="stat-label">✓ Zrobione</div></div>
+    <div class="stat-card" onclick="scrollToStat('inprogress')"><div class="stat-value" id="s-inprogress" style="color:var(--orange)">0</div><div class="stat-label">⏳ W trakcie</div></div>
   </div>
 
   <div class="main-progress">
@@ -1149,6 +1151,31 @@ const DEFAULT_ITEMS_WIDEO = [
   { id:'wi6', sec:'todo', quad:'q1', checked:false, priority:true,  pawel:false, note:'', text:'Przelew za film "Odbicie" — poprosić o realizację' },
 ];
 
+const DEFAULT_ITEMS_FUNDACJA = [
+  { id:'fn0a', sec:'todo', quad:'q1', checked:false, priority:true,  pawel:false, note:'', text:'⚠️ Maria: spłać ~17 PLN zaległości w mBanku fundacji (przed złożeniem KRS!)' },
+  { id:'fn0b', sec:'todo', quad:'q1', checked:false, priority:true,  pawel:false, note:'', text:'⚠️ Maria: złóż CIT-8 zerowy za 2025 r. → podatki.gov.pl → e-Deklaracje (termin przekroczony!)' },
+  { id:'fn0c', sec:'todo', quad:'q1', checked:false, priority:true,  pawel:false, note:'', text:'Zbierz od Marii: PESEL, nr i seria dowodu, adres zameldowania' },
+  { id:'fn1a', sec:'todo', quad:'q1', checked:false, priority:false, pawel:false, note:'', text:'Pobierz stary statut z KRS → krs.ms.gov.pl → 0001058833 → Dokumenty (sprawdź kwotę funduszu §7)' },
+  { id:'fn1b', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Uzupełnij plik 03 — daty, PESEL Jakuba, imię ojca, adres + dane Marii' },
+  { id:'fn1c', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Uzupełnij plik 04 — daty i numery paragrafów ze statutu' },
+  { id:'fn1d', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Wydrukuj pliki 03, 04, 05 — po 2 egzemplarze (jeden z podpisami dla Was, drugi do KRS)' },
+  { id:'fn1e', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Sprawdź profil zaufany Jakuba → login.gov.pl (potrzebny do KRS online)' },
+  { id:'fn2a', sec:'todo', quad:'q1', checked:false, priority:false, pawel:false, note:'', text:'SPOTKANIE z Marią: plik 03 — oboje podpisują (Maria pierwsza, 2x: rezygnacja + zgoda na Wiceprezesa)' },
+  { id:'fn2b', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Podpisz plik 04 jako nowy Prezes (zmiana nazwy, statutu, PKD, DG)' },
+  { id:'fn2c', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Podpisz plik 05 — nowy statut Fundacji FORMA' },
+  { id:'fn3a', sec:'todo', quad:'q1', checked:false, priority:false, pawel:false, note:'', text:'prs.ms.gov.pl → KRS-Z20 → zaloguj profilem zaufanym → wyszukaj KRS 0001058833' },
+  { id:'fn3b', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Wypełnij KRS-Z20: zmiana zarządu, nazwa→Fundacja FORMA, statut, PKD, DG=TAK' },
+  { id:'fn3c', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Załącz skany: plik 03 + plik 04 + plik 05 (czytelne PDF/JPG z podpisami)' },
+  { id:'fn3d', sec:'todo', quad:'q1', checked:false, priority:false, pawel:false, note:'', text:'Opłać KRS: ~687 PLN (140 zarząd + 140 nazwa + 390 statut+MSiG) + 17 PLN mBank' },
+  { id:'fn4a', sec:'todo', quad:'q1', checked:false, priority:true,  pawel:false, note:'', text:'⏰ NIP-2 do US — TERMIN 7 DNI od wpisu KRS! (ustaw przypomnienie od razu po złożeniu)' },
+  { id:'fn4b', sec:'todo', quad:'q1', checked:false, priority:true,  pawel:false, note:'', text:'⏰ RG-OP do GUS — TERMIN 14 DNI od wpisu KRS! → stat.gov.pl' },
+  { id:'fn4c', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'mBank — aktualizacja danych (odpis KRS) — rozważ zmianę na PKO/ING/Nest (darmowe NGO)' },
+  { id:'fn4d', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'Uchwała zarządu #1 po rejestracji — plan działania 2026, potwierdzenie składu' },
+  { id:'fn4e', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'witkac.pl — zarejestruj profil organizacji (granty NCK, MKiDN)' },
+  { id:'fn4f', sec:'todo', quad:'q2', checked:false, priority:false, pawel:false, note:'', text:'niw.gov.pl — rejestracja dla wniosków NOWEFIO (nabór jesień 2026, 100-250k PLN)' },
+  { id:'fn4g', sec:'todo', quad:'q1', checked:false, priority:false, pawel:false, note:'', text:'PISF DKF — złóż wniosek w najbliższym naborze (15-30k PLN rocznie, bez wkładu własnego)' },
+];
+
 const PROJECTS = {
   general:    { label: 'Wszystkie',         storageKey: 'ai-lista-v5',          defaultItems: DEFAULT_ITEMS,          catKey: null       },
   prywatne:   { label: 'Prywatne',          storageKey: 'ai-lista-prywatne',    defaultItems: DEFAULT_ITEMS_PRYWATNE, catKey: 'prywatne' },
@@ -1159,6 +1186,7 @@ const PROJECTS = {
   vibecoding: { label: 'Vibe Coding',       storageKey: 'ai-lista-vibecoding',  defaultItems: [],                     catKey: null       },
   telegram:   { label: 'Telegram',          storageKey: 'ai-lista-telegram',    defaultItems: [],                     catKey: 'telegram'  },
   spotkania:  { label: 'Spotkania',         storageKey: 'ai-lista-spotkania',   defaultItems: [],                     catKey: null        },
+  fundacja:   { label: 'Fundacja FORMA',    storageKey: 'ai-lista-fundacja',    defaultItems: DEFAULT_ITEMS_FUNDACJA, catKey: null        },
 };
 
 const CAT_PROJECTS = ['prywatne', 'dp', 'vns', 'telegram'];
@@ -2856,6 +2884,23 @@ function moveItem(srcId, targetSec, targetQuad, anchorId, insertAfter) {
     items.splice(insertAfter ? anIdx + 1 : anIdx, 0, item);
   }
   render(); autoSave();
+}
+
+function scrollToStat(type) {
+  let target = null;
+  if (type === 'q1' || type === 'q2') {
+    const secTodo = sections.find(s => s.id === 'todo');
+    if (secTodo && secTodo.collapsed) { secTodo.collapsed = false; render(); autoSave(); }
+    if (QUADS_COLLAPSED[type]) { QUADS_COLLAPSED[type] = false; render(); autoSave(); }
+    target = document.getElementById('quad-' + type);
+  } else if (type === 'done') {
+    const secDone = sections.find(s => s.id === 'done');
+    if (secDone && secDone.collapsed) { secDone.collapsed = false; render(); autoSave(); }
+    target = document.getElementById('sec-done');
+  } else if (type === 'inprogress') {
+    target = document.querySelector('.item.is-inprogress');
+  }
+  if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
 }
 
 function toggleSection(id, event) {
