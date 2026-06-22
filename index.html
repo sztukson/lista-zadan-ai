@@ -109,6 +109,15 @@
   .pg-sub-header .pg-sub-count { font-weight: 400; }
   .pg-sub-items { padding: 0 0 4px; }
   .pg-sub.pg-sub-collapsed .pg-sub-items { display: none; }
+  /* Project separator inside quadrant */
+  .pg-sub-proj { margin: 10px 0 4px; }
+  .pg-sub-proj .pg-sub-header { font-size: 11px; font-weight: 800; letter-spacing: .08em; justify-content: center; text-align: center; padding: 5px 10px; border-radius: 6px; color: var(--qcolor, var(--fg)); background: rgba(var(--qcolorRGB, 139,148,158), .10); border: 1px solid rgba(var(--qcolorRGB, 139,148,158), .22); }
+  .pg-sub-proj .pg-sub-header:hover { background: rgba(var(--qcolorRGB, 139,148,158), .18); }
+  .pg-sub-proj .pg-sub-header .pg-sub-count { font-size: 10px; font-weight: 700; background: rgba(var(--qcolorRGB, 139,148,158), .18); padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
+  .q1 .pg-sub-proj .pg-sub-header { --qcolor: var(--red);    --qcolorRGB: 248,81,73;   }
+  .q2 .pg-sub-proj .pg-sub-header { --qcolor: var(--yellow); --qcolorRGB: 210,153,34;  }
+  .q3 .pg-sub-proj .pg-sub-header { --qcolor: var(--orange); --qcolorRGB: 230,126,34;  }
+  .q4 .pg-sub-proj .pg-sub-header { --qcolor: var(--muted);  --qcolorRGB: 139,148,158; }
   .section.drag-target > .sec-body { outline: 2px solid var(--cyan); outline-offset: -4px; border-radius: 8px; }
 
   .sec-header {
@@ -2266,7 +2275,7 @@ function renderMatrix(body) {
           const pgKey = q.id + '-' + projKey;
           const pgCollapsed = GENERAL_PROJ_COLLAPSED[pgKey] || false;
           const pg = document.createElement('div');
-          pg.className = 'pg-sub' + (pgCollapsed ? ' pg-sub-collapsed' : '');
+          pg.className = 'pg-sub pg-sub-proj' + (pgCollapsed ? ' pg-sub-collapsed' : '');
           pg.id = 'pgs-' + pgKey;
           const hdr = document.createElement('div');
           hdr.className = 'pg-sub-header';
