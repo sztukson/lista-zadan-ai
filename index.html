@@ -1271,12 +1271,15 @@ function undo() {
   if (!undoStack.length) return;
   const state = JSON.parse(undoStack.pop());
   items = state.items;
-  state.secs.forEach(ss => { const s = sections.find(x => x.id === ss.id); if (s) s.collapsed = ss.collapsed; });
-  Object.assign(QUADS_COLLAPSED, state.qc);
-  Object.assign(DONE_SUBS_COLLAPSED, state.dc);
+  // Don't restore section/quad collapse states — keep current UI layout
   saveUndoStack();
   render();
-  autoSave();
+  if (activeProject !== 'general') autoSave();
+  else {
+    // In general view: sync each cat project back to Supabase
+    CAT_PROJECTS.forEach(catKey => sbSave(items.filter(i => i.cat === catKey), catKey));
+    saveAggregateItems();
+  }
   showToast('↩ Cofnięto', true);
   logAction('↩', 'Cofnięto akcję');
 }
