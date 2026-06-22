@@ -981,6 +981,7 @@
   <input class="add-date" id="bulk-date" type="date" style="width:140px;padding:5px 8px;" title="Przypisz datę">
   <button class="btn-bulk" onclick="applyBulkDate()">📅 Dodaj datę</button>
   <button class="btn-bulk" onclick="applyBulkStatus('inprogress')">⏳ W trakcie</button>
+  <button class="btn-bulk" onclick="showBulkMoveMenu(event)">📂 Przenieś</button>
   <button class="btn-bulk" onclick="clearSelection()" style="color:var(--muted)">✕ Odznacz</button>
 </div>
 
@@ -3981,6 +3982,48 @@ function clearSelection() {
   selectedIds.clear();
   updateBulkToolbar();
   render();
+}
+
+function showBulkMoveMenu(e) {
+  closeMoveMenu();
+  const menu = document.createElement('div');
+  menu.className = 'move-menu';
+  menu.id = 'bulk-move-menu';
+  const PROJ_LABELS = Object.fromEntries(Object.entries(PROJECTS).map(([k,v]) => [k, v.label]));
+  const targets = Object.keys(PROJECTS).filter(k => k !== 'general' && k !== 'projekty' && k !== activeProject);
+  menu.innerHTML = targets.map(k => `<div class="move-item" onclick="applyBulkMove('${k}')">${PROJ_LABELS[k]}</div>`).join('');
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  menu.style.cssText = `position:fixed;top:${rect.bottom+4}px;left:${rect.left}px;z-index:9999`;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeMoveMenu, { once: true }), 10);
+}
+
+async function applyBulkMove(targetProject) {
+  closeMoveMenu();
+  if (!selectedIds.size) return;
+  pushHistory();
+  const ids = [...selectedIds];
+  // Collect children of selected parents too
+  const allIds = [];
+  ids.forEach(id => {
+    if (!allIds.includes(id)) allIds.push(id);
+    getChildren(id).forEach(c => { if (!allIds.includes(c.id)) allIds.push(c.id); });
+  });
+  try {
+    await sb.from('tasks').update({ project: targetProject, cat: targetProject }).in('id', allIds);
+  } catch(e) { console.warn('bulkMove error', e); }
+  allIds.forEach(aid => {
+    const it = items.find(i => i.id === aid);
+    if (it) { it._project = targetProject; it.cat = targetProject; }
+  });
+  items = items.filter(i => !allIds.includes(i.id));
+  selectedIds.clear();
+  updateBulkToolbar();
+  render();
+  saveAll();
+  const label = PROJECTS[targetProject]?.label || targetProject;
+  showToast(`Przeniesiono ${ids.length} zadań do ${label}`);
 }
 
 function applyBulkDate() {
