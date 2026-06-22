@@ -3859,6 +3859,8 @@ function switchProject(pid) {
     items = [];
   } else {
     loadState();
+    // Push localStorage data to Supabase (seeds projects that were never synced)
+    if (items.length) sbSave(items, pid).catch(() => {});
   }
 
   render();
@@ -4011,6 +4013,8 @@ function applyBulkStatus(status) {
 }
 
 // Initial load — localStorage (fast), then Supabase sync in background
+const _allowedOnStart = SECTIONS_BY_PROJECT[activeProject] || ['todo','done'];
+sections = SECTIONS_DEF.filter(s => _allowedOnStart.includes(s.id)).map(s => JSON.parse(JSON.stringify(s)));
 if (activeProject === 'general') {
   items = loadAggregateItems();
 } else {
