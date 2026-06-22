@@ -95,6 +95,20 @@
 
   /* SECTION */
   .section { margin-bottom: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .proj-group { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .proj-group-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; background: var(--surface2); user-select: none; }
+  .proj-group-header:hover { background: #2d333b; }
+  .proj-group-header .pg-count { margin-left: auto; background: var(--surface); border: 1px solid var(--border); padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 400; }
+  .proj-group-header .pg-chev { font-size: 10px; transition: transform .2s; }
+  .proj-group.pg-collapsed .pg-chev { transform: rotate(-90deg); }
+  .proj-group-body { padding: 8px; }
+  .proj-group.pg-collapsed .proj-group-body { display: none; }
+  .pg-sub { margin-bottom: 6px; }
+  .pg-sub-header { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding: 4px 6px 2px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .pg-sub-header:hover { color: var(--fg); }
+  .pg-sub-header .pg-sub-count { font-weight: 400; }
+  .pg-sub-items { padding: 0 0 4px; }
+  .pg-sub.pg-sub-collapsed .pg-sub-items { display: none; }
   .section.drag-target > .sec-body { outline: 2px solid var(--cyan); outline-offset: -4px; border-radius: 8px; }
 
   .sec-header {
@@ -990,6 +1004,7 @@ function rowToItem(row) {
     cat: row.cat, note: row.note || '',
     completedAt: row.completed_at,
     _prevSec: row.prev_sec, _prevQuad: row.prev_quad,
+    _project: row.project || null,
   };
 }
 
@@ -1015,13 +1030,9 @@ async function sbDelete(id) {
 async function syncFromSupabase() {
   try {
     if (activeProject === 'general') {
-      const results = await Promise.all(CAT_PROJECTS.map(k => sbFetch(k)));
-      const merged = [];
-      CAT_PROJECTS.forEach((catKey, i) => {
-        const src = results[i] || loadCatItems(catKey);
-        src.forEach(item => { if (!item.cat) item.cat = catKey; merged.push(item); });
-      });
-      items = merged;
+      const { data, error } = await sb.from('tasks').select('*').neq('project', 'general');
+      if (error) throw error;
+      items = (data || []).map(row => ({ ...rowToItem(row), _project: row.project }));
     } else if (activeProject !== 'projekty') {
       const remote = await sbFetch(activeProject);
       if (remote && remote.length) items = remote;
@@ -1990,7 +2001,101 @@ function deleteCyclicTask(id) {
   sbDelete(id);
 }
 
+const GENERAL_PROJ_ORDER = ['prywatne','dp','vns','szpilki','fundacja','projekty','spotkania','cykliczne','vibecoding','telegram'];
+const GENERAL_PROJ_COLLAPSED = {};
+
+function renderGeneral() {
+  const wrap = document.getElementById('sections-wrap');
+  wrap.innerHTML = '';
+  const PROJ_LABELS = Object.fromEntries(Object.entries(PROJECTS).map(([k,v]) => [k, v.label]));
+  const PROJ_COLORS = { prywatne:'var(--cyan)', dp:'var(--purple)', vns:'var(--orange)', szpilki:'var(--pink,#e879b0)', fundacja:'#e8c547', projekty:'var(--blue)', spotkania:'var(--purple)', cykliczne:'var(--green)', vibecoding:'var(--blue)', telegram:'var(--blue)' };
+
+  // Group items by _project
+  const groups = {};
+  items.forEach(i => {
+    const p = i._project || i.cat || 'inne';
+    if (!groups[p]) groups[p] = [];
+    groups[p].push(i);
+  });
+
+  const order = [...GENERAL_PROJ_ORDER, ...Object.keys(groups).filter(k => !GENERAL_PROJ_ORDER.includes(k))];
+
+  order.forEach(projKey => {
+    const projItems = groups[projKey];
+    if (!projItems || !projItems.length) return;
+    const todoItems = projItems.filter(i => i.sec !== 'done' && !i.checked && !parseParent(i));
+    const doneItems = projItems.filter(i => (i.sec === 'done' || i.checked) && !parseParent(i));
+    const totalUnchecked = projItems.filter(i => !i.checked && !parseParent(i)).length;
+    if (!projItems.length) return;
+
+    const collapsed = GENERAL_PROJ_COLLAPSED[projKey] || false;
+    const color = PROJ_COLORS[projKey] || 'var(--border)';
+    const label = PROJ_LABELS[projKey] || projKey;
+
+    const grp = document.createElement('div');
+    grp.className = 'proj-group' + (collapsed ? ' pg-collapsed' : '');
+    grp.id = 'pg-' + projKey;
+    grp.innerHTML = `
+      <div class="proj-group-header" style="border-left:3px solid ${color}" onclick="toggleProjGroup('${projKey}')">
+        <span>${label}</span>
+        <span class="pg-count">${totalUnchecked} do zrobienia</span>
+        <span class="pg-chev">▼</span>
+      </div>
+      <div class="proj-group-body" id="pgb-${projKey}"></div>`;
+    wrap.appendChild(grp);
+
+    if (!collapsed) {
+      const body = grp.querySelector('.proj-group-body');
+      // Todo sub-section
+      if (todoItems.length) {
+        const sub = document.createElement('div');
+        sub.className = 'pg-sub';
+        const subHdr = document.createElement('div');
+        subHdr.className = 'pg-sub-header';
+        subHdr.innerHTML = `📋 Do zrobienia <span class="pg-sub-count">${todoItems.length}</span>`;
+        const subItems = document.createElement('div');
+        subItems.className = 'pg-sub-items';
+        const sorted = [...todoItems].sort((a,b) => (a.priority?0:1)-(b.priority?0:1));
+        sorted.forEach((it, idx) => subItems.appendChild(makeItem(it, idx+1)));
+        sub.appendChild(subHdr);
+        sub.appendChild(subItems);
+        body.appendChild(sub);
+      }
+      // Done sub-section (collapsed by default)
+      if (doneItems.length) {
+        const doneKey = projKey + '-done';
+        const doneCollapsed = GENERAL_PROJ_COLLAPSED[doneKey] !== false; // default collapsed
+        const sub = document.createElement('div');
+        sub.className = 'pg-sub' + (doneCollapsed ? ' pg-sub-collapsed' : '');
+        sub.id = 'pgs-' + doneKey;
+        const subHdr = document.createElement('div');
+        subHdr.className = 'pg-sub-header';
+        subHdr.innerHTML = `✓ Zrobione <span class="pg-sub-count">${doneItems.length}</span>`;
+        subHdr.onclick = () => {
+          GENERAL_PROJ_COLLAPSED[doneKey] = !sub.classList.toggle('pg-sub-collapsed');
+        };
+        const subItems = document.createElement('div');
+        subItems.className = 'pg-sub-items';
+        doneItems.forEach((it, idx) => subItems.appendChild(makeItem(it, idx+1)));
+        sub.appendChild(subHdr);
+        sub.appendChild(subItems);
+        body.appendChild(sub);
+      }
+    }
+  });
+  updateStats();
+}
+
+function toggleProjGroup(key) {
+  GENERAL_PROJ_COLLAPSED[key] = !GENERAL_PROJ_COLLAPSED[key];
+  const grp = document.getElementById('pg-' + key);
+  if (grp) grp.classList.toggle('pg-collapsed');
+  const body = document.getElementById('pgb-' + key);
+  if (body) body.style.display = GENERAL_PROJ_COLLAPSED[key] ? 'none' : '';
+}
+
 function render() {
+  if (activeProject === 'general') { renderGeneral(); return; }
   if (activeProject === 'projekty') { renderProjectsView(); return; }
   if (activeProject === 'spotkania') { renderSpotkania(); return; }
   if (activeProject === 'cykliczne') { renderCykliczne(); return; }
@@ -3018,7 +3123,9 @@ function autoSave() {
   saveTimer = setTimeout(() => {
     saveState(true);
     if (activeProject === 'general') {
-      CAT_PROJECTS.forEach(catKey => sbSave(items.filter(i => i.cat === catKey), catKey));
+      const byProj = {};
+      items.forEach(i => { const p = i._project || i.cat; if (p) { (byProj[p] = byProj[p]||[]).push(i); } });
+      Object.entries(byProj).forEach(([p, arr]) => sbSave(arr, p));
     } else if (activeProject !== 'projekty') {
       sbSave(items, activeProject);
     }
