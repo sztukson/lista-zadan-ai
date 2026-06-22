@@ -3257,6 +3257,10 @@ function loadState() {
         if (i.inProgress === undefined) i.inProgress = false;
         if (i.cat        === undefined) i.cat        = null;
       });
+      // Remove items that belong to a different CAT_PROJECT (stale mixed data)
+      if (!CAT_PROJECTS.includes(activeProject)) {
+        items = items.filter(i => !i.cat || i.cat === activeProject || !CAT_PROJECTS.includes(i.cat));
+      }
       // fix any duplicate t8 in stored data — rename old Stopki Gmail t8 to t10
       const t8s = items.filter(i => i.id === 't8');
       if (t8s.length > 1) {
