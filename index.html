@@ -111,13 +111,9 @@
   .pg-sub.pg-sub-collapsed .pg-sub-items { display: none; }
   /* Project separator inside quadrant */
   .pg-sub-proj { margin: 10px 0 4px; }
-  .pg-sub-proj .pg-sub-header { font-size: 11px; font-weight: 800; letter-spacing: .08em; justify-content: center; text-align: center; padding: 5px 10px; border-radius: 6px; color: var(--qcolor, var(--fg)); background: rgba(var(--qcolorRGB, 139,148,158), .10); border: 1px solid rgba(var(--qcolorRGB, 139,148,158), .22); }
-  .pg-sub-proj .pg-sub-header:hover { background: rgba(var(--qcolorRGB, 139,148,158), .18); }
-  .pg-sub-proj .pg-sub-header .pg-sub-count { font-size: 10px; font-weight: 700; background: rgba(var(--qcolorRGB, 139,148,158), .18); padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
-  .q1 .pg-sub-proj .pg-sub-header { --qcolor: var(--red);    --qcolorRGB: 248,81,73;   }
-  .q2 .pg-sub-proj .pg-sub-header { --qcolor: var(--yellow); --qcolorRGB: 210,153,34;  }
-  .q3 .pg-sub-proj .pg-sub-header { --qcolor: var(--orange); --qcolorRGB: 230,126,34;  }
-  .q4 .pg-sub-proj .pg-sub-header { --qcolor: var(--muted);  --qcolorRGB: 139,148,158; }
+  .pg-sub-proj .pg-sub-header { font-size: 11px; font-weight: 800; letter-spacing: .08em; justify-content: center; text-align: center; padding: 5px 10px; border-radius: 6px; color: var(--pc, var(--fg)); background: rgba(var(--pcRGB, 139,148,158), .10); border: 1px solid rgba(var(--pcRGB, 139,148,158), .22); }
+  .pg-sub-proj .pg-sub-header:hover { background: rgba(var(--pcRGB, 139,148,158), .18); }
+  .pg-sub-proj .pg-sub-header .pg-sub-count { font-size: 10px; font-weight: 700; background: rgba(var(--pcRGB, 139,148,158), .18); padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
   .section.drag-target > .sec-body { outline: 2px solid var(--cyan); outline-offset: -4px; border-radius: 8px; }
 
   .sec-header {
@@ -2266,6 +2262,17 @@ function renderMatrix(body) {
       } else if (activeProject === 'general') {
         // Group by project in Wszystkie view
         const PROJ_LABELS = Object.fromEntries(Object.entries(PROJECTS).map(([k,v]) => [k, v.label]));
+        const PROJ_COLORS_RGB = {
+          prywatne:   '248,81,73',
+          dp:         '88,166,255',
+          vns:        '230,126,34',
+          telegram:   '0,188,212',
+          szpilki:    '163,113,247',
+          vibecoding: '163,113,247',
+          fundacja:   '232,197,71',
+          cykliczne:  '57,208,200',
+          spotkania:  '188,140,255',
+        };
         const byProj = {};
         filtered.forEach(i => { const p = i._project || i.cat || 'inne'; (byProj[p] = byProj[p]||[]).push(i); });
         const projOrder = [...GENERAL_PROJ_ORDER, ...Object.keys(byProj).filter(k => !GENERAL_PROJ_ORDER.includes(k))];
@@ -2274,11 +2281,13 @@ function renderMatrix(body) {
           if (!projItems || !projItems.length) return;
           const pgKey = q.id + '-' + projKey;
           const pgCollapsed = GENERAL_PROJ_COLLAPSED[pgKey] || false;
+          const rgb = PROJ_COLORS_RGB[projKey] || '139,148,158';
           const pg = document.createElement('div');
           pg.className = 'pg-sub pg-sub-proj' + (pgCollapsed ? ' pg-sub-collapsed' : '');
           pg.id = 'pgs-' + pgKey;
           const hdr = document.createElement('div');
           hdr.className = 'pg-sub-header';
+          hdr.style.cssText = `--pc:rgb(${rgb});--pcRGB:${rgb}`;
           hdr.innerHTML = `${PROJ_LABELS[projKey]||projKey} <span class="pg-sub-count">${projItems.length}</span>`;
           hdr.onclick = () => { GENERAL_PROJ_COLLAPSED[pgKey] = pg.classList.toggle('pg-sub-collapsed'); };
           const subItems = document.createElement('div');
