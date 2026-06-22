@@ -2337,6 +2337,48 @@ function renderDone(body) {
     return;
   }
 
+  // In general view: group by project instead of DONE_SUBS
+  if (activeProject === 'general') {
+    const PROJ_LABELS = Object.fromEntries(Object.entries(PROJECTS).map(([k,v]) => [k, v.label]));
+    const PROJ_COLORS_RGB = { prywatne:'248,81,73', dp:'88,166,255', vns:'230,126,34', telegram:'0,188,212', szpilki:'163,113,247', vibecoding:'163,113,247', fundacja:'232,197,71', cykliczne:'57,208,200', spotkania:'188,140,255' };
+    const byProj = {};
+    allDone.filter(i => !parseParent(i)).forEach(i => { const p = i._project || i.cat || 'inne'; (byProj[p] = byProj[p]||[]).push(i); });
+    const projOrder = [...GENERAL_PROJ_ORDER, ...Object.keys(byProj).filter(k => !GENERAL_PROJ_ORDER.includes(k))];
+    projOrder.forEach(projKey => {
+      const projItems = byProj[projKey];
+      if (!projItems || !projItems.length) return;
+      const pgKey = 'done-' + projKey;
+      const pgCollapsed = GENERAL_PROJ_COLLAPSED[pgKey] !== false; // collapsed by default
+      const rgb = PROJ_COLORS_RGB[projKey] || '139,148,158';
+      const sorted = [...projItems].sort((a,b) => {
+        if (!a.completedAt && !b.completedAt) return 0;
+        if (!a.completedAt) return 1;
+        if (!b.completedAt) return -1;
+        return new Date(b.completedAt) - new Date(a.completedAt);
+      });
+      const pg = document.createElement('div');
+      pg.className = 'pg-sub pg-sub-proj' + (pgCollapsed ? ' pg-sub-collapsed' : '');
+      pg.id = 'pgs-' + pgKey;
+      const hdr = document.createElement('div');
+      hdr.className = 'pg-sub-header';
+      hdr.style.cssText = `--pc:rgb(${rgb});--pcRGB:${rgb}`;
+      hdr.innerHTML = `${PROJ_LABELS[projKey]||projKey} <span class="pg-sub-count">${sorted.length}</span>`;
+      hdr.onclick = () => { GENERAL_PROJ_COLLAPSED[pgKey] = pg.classList.toggle('pg-sub-collapsed'); };
+      const subItems = document.createElement('div');
+      subItems.className = 'pg-sub-items';
+      sorted.forEach((item, idx) => {
+        const el = makeItem(item, idx+1);
+        const ts = fmtTs(item.completedAt);
+        if (ts) { const span = document.createElement('span'); span.className = 'completed-time'; span.textContent = ts; el.querySelector('.item-text').appendChild(span); }
+        subItems.appendChild(el);
+      });
+      pg.appendChild(hdr);
+      pg.appendChild(subItems);
+      body.appendChild(pg);
+    });
+    return;
+  }
+
   DONE_SUBS.forEach(def => {
     const subItems = allDone.filter(i =>
       def.from === 'todo'
