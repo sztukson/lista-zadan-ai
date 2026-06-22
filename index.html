@@ -2834,9 +2834,14 @@ async function moveTask(id, targetProject) {
   const children = getChildren(id);
   const allIds = [id, ...children.map(c => c.id)];
   try {
-    // Single API call for parent + all children
-    await sb.from('tasks').update({ project: targetProject }).in('id', allIds);
+    // Single API call for parent + all children; update cat = targetProject so badge reflects new project
+    await sb.from('tasks').update({ project: targetProject, cat: targetProject }).in('id', allIds);
   } catch(e) { console.warn('moveTask sb error', e); }
+  // Update local items too
+  allIds.forEach(aid => {
+    const it = items.find(i => i.id === aid);
+    if (it) { it._project = targetProject; it.cat = targetProject; }
+  });
   items = items.filter(i => !allIds.includes(i.id));
   render();
   saveAll();
