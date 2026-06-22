@@ -3859,8 +3859,6 @@ function switchProject(pid) {
     items = [];
   } else {
     loadState();
-    // Push localStorage data to Supabase (seeds projects that were never synced)
-    if (items.length) sbSave(items, pid).catch(() => {});
   }
 
   render();
