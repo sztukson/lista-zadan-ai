@@ -224,6 +224,9 @@
   .badge-cat.cat-telegram { background: rgba(0,188,212,.15);   color: var(--cyan);   border: 1px solid rgba(0,188,212,.3);  }
   .badge-cat.cat-szpilki  { background: rgba(163,113,247,.15); color: var(--purple); border: 1px solid rgba(163,113,247,.3);}
   .badge-cat.cat-vibecoding{ background: rgba(163,113,247,.15);color: var(--purple); border: 1px solid rgba(163,113,247,.3);}
+  .badge-cat.cat-fundacja  { background: rgba(232,197,71,.15);  color: #e8c547;       border: 1px solid rgba(232,197,71,.3);  }
+  .badge-cat.cat-cykliczne { background: rgba(57,208,200,.15);  color: var(--cyan);   border: 1px solid rgba(57,208,200,.3);  }
+  .badge-cat.cat-spotkania { background: rgba(188,140,255,.15); color: var(--purple); border: 1px solid rgba(188,140,255,.3); }
   .badge-cat { cursor: pointer; }
   .badge-cat:hover { opacity: .75; }
 
@@ -2464,7 +2467,7 @@ function makeItem(item, num, isChildView = false) {
   const doneChildren = children.filter(c => c.checked).length;
   const isChild = isChildView || !!parseParent(item);
 
-  const catLabels = { prywatne:'Prywatne', dp:'DOP', vns:'VNS', telegram:'Telegram', szpilki:'Szpilki', vibecoding:'Vibe' };
+  const catLabels = { prywatne:'Prywatne', dp:'DOP', vns:'VNS', telegram:'Telegram', szpilki:'Szpilki', vibecoding:'Vibe', fundacja:'Fundacja', cykliczne:'Cykliczne', spotkania:'Spotkania' };
   el.className = 'item'
     + (item.checked    ? ' is-done'       : '')
     + (item.inProgress ? ' is-inprogress' : '')
@@ -2486,7 +2489,7 @@ function makeItem(item, num, isChildView = false) {
     <div class="cb ${cbCls}" data-cbid="${item.id}" title="Kliknij: ☐→✓"></div>
     <div class="item-text" ondblclick="event.stopPropagation();openEdit('${item.id}')">
       ${escHtml(item.text)}${stBadge}${hasChildren ? `<span class="st-badge-inline" title="Podzadania: ${doneChildren}/${children.length}">▸ ${doneChildren}/${children.length}</span>` : ''}${(() => { const ds = getItemDateStr(item); if (!ds) return ''; const dt = parseDate(ds); const diffDays = dt ? Math.round((dt - TODAY)/86400000) : null; let cls = 'date-tag'; if (dt && dt < TODAY) cls += ' overdue'; else if (dt && diffDays === 0) cls += ' today'; else if (dt && diffDays <= 2) cls += ' today'; else if (dt && diffDays <= 7) cls += ' soon'; else if (dt) cls += ' future'; const label = diffDays===0?' dziś':diffDays===1?' jutro':diffDays>0?` za ${diffDays}d`:diffDays!==null?` ${Math.abs(diffDays)}d temu`:''; return ` <span class="${cls}" style="cursor:pointer" onclick="event.stopPropagation();showDateMenu('${item.id}',event)" title="Zmień datę">📅 ${ds}${label}</span>`; })()}
-      ${(item.cat || activeProject !== 'general') ? `<span class="badge-cat cat-${item.cat||activeProject}" onclick="event.stopPropagation();showMoveMenu('${item.id}',event)" title="Zmień projekt">${catLabels[item.cat||activeProject]||item.cat||activeProject}</span>` : ''}
+      ${(() => { const projKey = item.cat || (activeProject !== 'general' ? activeProject : null) || item._project; return projKey ? `<span class="badge-cat cat-${projKey}" onclick="event.stopPropagation();showMoveMenu('${item.id}',event)" title="Zmień projekt">${catLabels[projKey]||projKey}</span>` : ''; })()}
     </div>
     <button class="btn-progress-item ${item.inProgress?'is-active':''}" onclick="event.stopPropagation();toggleInProgress('${item.id}')" title="${item.inProgress?'Usuń W trakcie':'Oznacz jako W trakcie'}">⏳</button>
     <button class="btn-note-item ${(hasNote||hasSubtasks||hasChildren)?'has-note':''}" onclick="event.stopPropagation();toggleNote('${item.id}')" title="${noteOpen?'Schowaj':'Rozwiń'}">📝</button>
