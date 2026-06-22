@@ -2095,7 +2095,6 @@ function toggleProjGroup(key) {
 }
 
 function render() {
-  if (activeProject === 'general') { renderGeneral(); return; }
   if (activeProject === 'projekty') { renderProjectsView(); return; }
   if (activeProject === 'spotkania') { renderSpotkania(); return; }
   if (activeProject === 'cykliczne') { renderCykliczne(); return; }
@@ -2255,6 +2254,31 @@ function renderMatrix(body) {
       const qBody = qEl.querySelector('.q-body');
       if (filtered.length === 0) {
         qBody.innerHTML = `<div class="empty-zone">${activeFilter !== 'all' ? 'Brak dla wybranego filtru' : 'Przeciągnij tutaj'}</div>`;
+      } else if (activeProject === 'general') {
+        // Group by project in Wszystkie view
+        const PROJ_LABELS = Object.fromEntries(Object.entries(PROJECTS).map(([k,v]) => [k, v.label]));
+        const byProj = {};
+        filtered.forEach(i => { const p = i._project || i.cat || 'inne'; (byProj[p] = byProj[p]||[]).push(i); });
+        const projOrder = [...GENERAL_PROJ_ORDER, ...Object.keys(byProj).filter(k => !GENERAL_PROJ_ORDER.includes(k))];
+        projOrder.forEach(projKey => {
+          const projItems = byProj[projKey];
+          if (!projItems || !projItems.length) return;
+          const pgKey = q.id + '-' + projKey;
+          const pgCollapsed = GENERAL_PROJ_COLLAPSED[pgKey] || false;
+          const pg = document.createElement('div');
+          pg.className = 'pg-sub' + (pgCollapsed ? ' pg-sub-collapsed' : '');
+          pg.id = 'pgs-' + pgKey;
+          const hdr = document.createElement('div');
+          hdr.className = 'pg-sub-header';
+          hdr.innerHTML = `${PROJ_LABELS[projKey]||projKey} <span class="pg-sub-count">${projItems.length}</span>`;
+          hdr.onclick = () => { GENERAL_PROJ_COLLAPSED[pgKey] = pg.classList.toggle('pg-sub-collapsed'); };
+          const subItems = document.createElement('div');
+          subItems.className = 'pg-sub-items';
+          projItems.forEach((item, idx) => subItems.appendChild(makeItem(item, idx+1)));
+          pg.appendChild(hdr);
+          pg.appendChild(subItems);
+          qBody.appendChild(pg);
+        });
       } else {
         filtered.forEach((item, idx) => qBody.appendChild(makeItem(item, idx+1)));
       }
