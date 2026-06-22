@@ -2687,9 +2687,8 @@ async function moveTask(id, targetProject) {
   const children = getChildren(id);
   const allIds = [id, ...children.map(c => c.id)];
   try {
-    await Promise.all(allIds.map(cid =>
-      sb.from('tasks').update({ project: targetProject }).eq('id', cid).catch(e => console.warn(e))
-    ));
+    // Single API call for parent + all children
+    await sb.from('tasks').update({ project: targetProject }).in('id', allIds);
   } catch(e) { console.warn('moveTask sb error', e); }
   items = items.filter(i => !allIds.includes(i.id));
   render();
