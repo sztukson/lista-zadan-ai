@@ -2040,7 +2040,7 @@ function render() {
         ctx.className = 'overdue-parent-ctx';
         ctx.textContent = '↳ ' + parent.text.slice(0, 60);
         body.appendChild(ctx);
-        children.forEach((ch, idx) => body.appendChild(makeItem(ch, idx + 1, true)));
+        [...children].sort((a, b) => (a.checked ? 1 : 0) - (b.checked ? 1 : 0)).forEach((ch, idx) => body.appendChild(makeItem(ch, idx + 1, true)));
       });
     }
     od.querySelector('.sec-header').addEventListener('click', () => {
@@ -2396,7 +2396,8 @@ function makeItem(item, num, isChildView = false) {
       detail.appendChild(hdr);
       const childWrap = document.createElement('div');
       childWrap.className = 'item-children';
-      children.forEach((ch, idx) => childWrap.appendChild(makeItem(ch, idx + 1, true)));
+      const sortedChildren = [...children].sort((a, b) => (a.checked ? 1 : 0) - (b.checked ? 1 : 0));
+      sortedChildren.forEach((ch, idx) => childWrap.appendChild(makeItem(ch, idx + 1, true)));
       detail.appendChild(childWrap);
     }
 
