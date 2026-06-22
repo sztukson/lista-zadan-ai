@@ -3313,7 +3313,8 @@ function migrateEmbeddedSubtasks() {
   });
   if (toAdd.length) {
     items.push(...toAdd);
-    autoSave();
+    // BUG5 fix: nie wywołuj autoSave() w trakcie Supabase-sync — caller już to robi
+    saveAll();
   }
   localStorage.setItem(MK, '1');
 }
@@ -3378,7 +3379,9 @@ function submitNewItem() {
   const id   = 'u' + Date.now();
 
   pushHistory();
-  items.push({ id, sec, quad, checked: false, inProgress: false, priority: false, pawel, cat, note, text });
+  // BUG4 fix: w general view — przypisz _project żeby autoSave wiedział gdzie zapisać
+  const _proj = activeProject !== 'general' ? null : (cat || null);
+  items.push({ id, sec, quad, checked: false, inProgress: false, priority: false, pawel, cat, note, text, _project: _proj });
 
   const targetSec = sections.find(s => s.id === sec);
   if (targetSec) targetSec.collapsed = false;
@@ -3859,11 +3862,16 @@ function switchProject(pid) {
   if (actionsBar) actionsBar.style.display = hideUI ? 'none' : '';
 
   if (pid === 'general') {
-    items = loadAggregateItems();
+    items = []; // BUG1 fix: Supabase is source of truth; don't pre-load mixed localStorage
   } else if (pid === 'projekty') {
     items = [];
   } else {
     loadState();
+    // BUG3 fix: seed Supabase with own items (only items that belong to this project)
+    if (items.length && !CAT_PROJECTS.includes(pid)) {
+      const ownItems = items.filter(i => !i.cat || i.cat === pid || !CAT_PROJECTS.includes(i.cat));
+      if (ownItems.length) sbSave(ownItems, pid).catch(() => {});
+    }
   }
 
   render();
@@ -4057,17 +4065,17 @@ function applyBulkStatus(status) {
   render(); autoSave();
 }
 
-// Initial load — localStorage (fast), then Supabase sync in background
+// Initial load — sections filter, then Supabase sync
 const _allowedOnStart = SECTIONS_BY_PROJECT[activeProject] || ['todo','done'];
 sections = SECTIONS_DEF.filter(s => _allowedOnStart.includes(s.id)).map(s => JSON.parse(JSON.stringify(s)));
 if (activeProject === 'general') {
-  items = loadAggregateItems();
+  items = []; // BUG1: Supabase is source of truth for general view
 } else {
   loadState();
 }
 render();
 onSecChange();
-setTimeout(syncFromSupabase, 200);
+setTimeout(syncFromSupabase, 50); // BUG1: szybszy sync (50ms zamiast 200ms)
 
 // ── PWA Service Worker ──
 if ('serviceWorker' in navigator) {
