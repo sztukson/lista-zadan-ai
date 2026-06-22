@@ -3862,19 +3862,15 @@ function switchProject(pid) {
   if (actionsBar) actionsBar.style.display = hideUI ? 'none' : '';
 
   if (pid === 'general') {
-    items = []; // BUG1 fix: Supabase is source of truth; don't pre-load mixed localStorage
+    items = []; // Supabase is source of truth; don't pre-load localStorage
   } else if (pid === 'projekty') {
     items = [];
   } else {
     loadState();
-    // BUG3 fix: seed Supabase with own items (only items that belong to this project)
-    if (items.length && !CAT_PROJECTS.includes(pid)) {
-      const ownItems = items.filter(i => !i.cat || i.cat === pid || !CAT_PROJECTS.includes(i.cat));
-      if (ownItems.length) sbSave(ownItems, pid).catch(() => {});
-    }
   }
 
   render();
+  if (pid !== 'projekty') syncFromSupabase();
 
   document.querySelectorAll('.proj-tab').forEach(t => t.classList.remove('active'));
   const tabEl = document.getElementById('pt-' + pid);
