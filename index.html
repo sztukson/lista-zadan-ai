@@ -1276,6 +1276,7 @@ function undo() {
   Object.assign(DONE_SUBS_COLLAPSED, state.dc);
   saveUndoStack();
   render();
+  autoSave();
   showToast('↩ Cofnięto', true);
   logAction('↩', 'Cofnięto akcję');
 }
@@ -2679,14 +2680,20 @@ function showMoveMenu(id, event) {
 async function moveTask(id, targetProject) {
   const item = items.find(i => i.id === id);
   if (!item) return;
+  pushHistory();
+  const children = getChildren(id);
+  const allIds = [id, ...children.map(c => c.id)];
   try {
-    await sb.from('tasks').update({ project: targetProject }).eq('id', id);
+    await Promise.all(allIds.map(cid =>
+      sb.from('tasks').update({ project: targetProject }).eq('id', cid).catch(e => console.warn(e))
+    ));
   } catch(e) { console.warn('moveTask sb error', e); }
-  items = items.filter(i => i.id !== id);
+  items = items.filter(i => !allIds.includes(i.id));
   render();
   saveAll();
   const label = PROJECTS[targetProject]?.label || targetProject;
-  showToast('Przeniesiono do ' + label);
+  const childInfo = children.length ? ` (+${children.length} podzadań)` : '';
+  showToast('Przeniesiono do ' + label + childInfo);
 }
 
 function duplicateItem(id) {
