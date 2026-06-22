@@ -848,7 +848,7 @@
     <button class="proj-tab" onclick="switchProject('dp')" id="pt-dp" style="color:var(--blue)">🎬 DOP</button>
     <button class="proj-tab" onclick="switchProject('vns')" id="pt-vns" style="color:var(--orange)">📱 VNS</button>
     <button class="proj-tab" onclick="switchProject('projekty')" id="pt-projekty" style="color:var(--purple)">📂 Projekty</button>
-    <button class="proj-tab" onclick="switchProject('vibecoding')" id="pt-vibecoding" style="color:var(--purple)">💻 Vibe Coding</button>
+    <button class="proj-tab" onclick="switchProject('vibecoding')" id="pt-vibecoding" style="color:var(--purple)">💻 Vibe</button>
     <button class="proj-tab" onclick="switchProject('telegram')" id="pt-telegram" style="color:var(--cyan)">📲 Telegram</button>
     <button class="proj-tab" onclick="switchProject('spotkania')" id="pt-spotkania" style="color:var(--purple)">🤝 Spotkania</button>
     <button class="proj-tab" onclick="switchProject('cykliczne')" id="pt-cykliczne" style="color:var(--green)">🔁 Cykliczne</button>
@@ -1043,7 +1043,7 @@ async function syncFromSupabase() {
       items = (data || []).map(row => ({ ...rowToItem(row), _project: row.project }));
     } else if (activeProject !== 'projekty') {
       const remote = await sbFetch(activeProject);
-      if (remote && remote.length) items = remote;
+      if (remote !== null) items = remote; // null=error (keep existing); [] = valid empty project
     } else return;
     migrateEmbeddedSubtasks();
     render();
@@ -1089,7 +1089,8 @@ const SECTIONS_BY_PROJECT = {
   vns:        ['todo', 'done'],
   projekty:   ['todo', 'done'],
   szpilki:    ['todo', 'done'],
-  vibecoding: ['todo', 'ai', 'pawel', 'done'],
+  vibecoding: ['todo', 'done'],
+  fundacja:   ['todo', 'done'],
   telegram:    ['todo', 'done'],
   spotkania:   ['todo', 'zaplanowane', 'done'],
   cykliczne:   ['todo'],
@@ -1934,6 +1935,17 @@ function renderCykliczne() {
   });
 
   wrap.appendChild(container);
+
+  // Update progress bar: cyc-ok = "done"
+  const okCount  = sorted.filter(i => cycStatus(i).cls === 'cyc-ok').length;
+  const total    = sorted.length;
+  const pct      = total > 0 ? Math.round(okCount / total * 100) : 0;
+  const pctEl = document.getElementById('pct');
+  const barEl = document.getElementById('bar');
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (barEl) barEl.style.width = pct + '%';
+  const doneEl = document.getElementById('s-done');
+  if (doneEl) doneEl.textContent = okCount;
 }
 
 function makeCycItem(item) {
