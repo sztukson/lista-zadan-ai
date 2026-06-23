@@ -910,11 +910,14 @@
       <button class="btn-mic" id="btn-mic" onclick="toggleMic()" title="Dyktuj głosem">🎤</button>
     </div>
     <div class="add-row">
-      <select class="add-select" id="new-cat">
-        <option value="">— Kategoria —</option>
+      <select class="add-select" id="new-cat" style="display:none">
+        <option value="">— Projekt —</option>
         <option value="prywatne">🔴 Prywatne</option>
-        <option value="dp">🟠 DOP</option>
-        <option value="vns">🔵 VNS</option>
+        <option value="dp">🎬 DOP</option>
+        <option value="vns">📱 VNS</option>
+        <option value="szpilki">🎭 Szpilki</option>
+        <option value="vibecoding">💻 Vibe</option>
+        <option value="fundacja">🏛️ Fundacja</option>
       </select>
       <select class="add-select" id="new-sec" onchange="onSecChange()">
         <option value="todo">📋 Do Zrobienia</option>
@@ -3348,6 +3351,11 @@ function onSecChange() {
   const quad  = document.getElementById('new-quad');
   quad.style.display = sec === 'todo' ? '' : 'none';
 
+  // show cat selector only in general/telegram view
+  const catSel = document.getElementById('new-cat');
+  const showCat = activeProject === 'general' || activeProject === 'telegram';
+  if (catSel) catSel.style.display = showCat ? '' : 'none';
+
   // hide ai/pawel options for projects that don't have those sections
   const hasAiPawel = activeProject === 'vibecoding';
   const optAi    = secEl.querySelector('option[value="ai"]');
@@ -3378,7 +3386,9 @@ function submitNewItem() {
   const quad  = sec === 'todo' ? document.getElementById('new-quad').value : null;
   const date  = pickerToDisplay(document.getElementById('new-date').value);
   const pawel = document.getElementById('new-pawel').checked;
-  const cat   = document.getElementById('new-cat').value || null;
+  const catSelEl = document.getElementById('new-cat');
+  const showCatSel = activeProject === 'general' || activeProject === 'telegram';
+  const cat = showCatSel ? (catSelEl.value || null) : (activeProject !== 'general' ? activeProject : null);
 
   const text = rawText;
   const note = date ? `📅${date}` : '';
