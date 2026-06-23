@@ -1311,6 +1311,12 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     undo();
   }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveAll();
+    syncFromSupabase();
+    showToast('☁ Zapisano do Supabase', false);
+  }
   if (e.key === 'Escape' && editingId) {
     closeEdit();
   }
